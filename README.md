@@ -43,6 +43,14 @@ cd backend
 npm run prisma:push
 ```
 
+Seed an admin user and sample products:
+
+```bash
+npm run prisma:seed
+```
+
+The seed script creates `admin@diagramclo.com` with password `ChangeMe123!` for local development. Override these with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
+
 Start the backend in development:
 
 ```bash

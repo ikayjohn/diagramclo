@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
+    "prisma:seed": "tsx prisma/seed.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -33,4 +34,3 @@
     "typescript": "^5.8.3"
   }
 }
-
