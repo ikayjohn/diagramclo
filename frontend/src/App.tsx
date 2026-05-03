@@ -183,7 +183,7 @@ const policyPages: Record<PolicyRoute, {
   contact: {
     eyebrow: "Customer Care",
     title: "Contact",
-    intro: "Reach Diagramclo for orders, delivery support, sizing questions, and store enquiries.",
+    intro: "Reach Diagramclo™ for orders, delivery support, sizing questions, and store enquiries.",
     sideTitle: "Studio",
     sideNotes: [
       "7a JOK Mall, Bisola Durotimi Etti Road, Lekki Phase 1, Lagos.",
@@ -199,7 +199,7 @@ const policyPages: Record<PolicyRoute, {
   privacy: {
     eyebrow: "Legal",
     title: "Privacy Policy",
-    intro: "How Diagramclo handles customer information used for accounts, orders, delivery, and support.",
+    intro: "How Diagramclo™ handles customer information used for accounts, orders, delivery, and support.",
     sideTitle: "Data Use",
     sideNotes: [
       "We collect only the details needed to run the store and deliver orders.",
@@ -215,7 +215,7 @@ const policyPages: Record<PolicyRoute, {
   terms: {
     eyebrow: "Legal",
     title: "Terms of Service",
-    intro: "The basic terms for using the Diagramclo storefront and placing orders.",
+    intro: "The basic terms for using the Diagramclo™ storefront and placing orders.",
     sideTitle: "Store Terms",
     sideNotes: [
       "Orders are subject to product availability and successful confirmation.",
@@ -225,13 +225,13 @@ const policyPages: Record<PolicyRoute, {
       { title: "Orders", body: "Placing an order confirms that the checkout information provided is accurate and that you are authorized to use the selected payment method." },
       { title: "Product availability", body: "Items may sell out during launches or limited drops. If an item becomes unavailable after checkout, we will contact you about the next steps." },
       { title: "Delivery", body: "Delivery timelines begin after order confirmation. Delays may occur due to courier coverage, public holidays, incorrect addresses, or launch volume." },
-      { title: "Store updates", body: "Diagramclo may update these terms as the store, delivery process, or customer services change." },
+      { title: "Store updates", body: "Diagramclo™ may update these terms as the store, delivery process, or customer services change." },
     ],
   },
   care: {
     eyebrow: "Info",
     title: "Care Guide",
-    intro: "Simple care notes to help Diagramclo pieces keep their shape, color, and finish.",
+    intro: "Simple care notes to help Diagramclo™ pieces keep their shape, color, and finish.",
     sideTitle: "General Care",
     sideNotes: [
       "Wash less often where possible.",
@@ -248,7 +248,7 @@ const policyPages: Record<PolicyRoute, {
   size: {
     eyebrow: "Info",
     title: "Size Guide",
-    intro: "Fit guidance for choosing Diagramclo apparel sizes before checkout.",
+    intro: "Fit guidance for choosing Diagramclo™ apparel sizes before checkout.",
     sideTitle: "Fit Notes",
     sideNotes: [
       "Check each product's available sizes before adding to cart.",
@@ -1054,7 +1054,7 @@ function App() {
         </label>
       </div>
 
-      <p className="footer-copyright">© 2026 Diagramclo</p>
+      <p className="footer-copyright">© 2026 Diagramclo™</p>
       <div className="payment-methods" aria-label="Accepted payment methods">
         <span>Visa</span>
         <span>Mastercard</span>
@@ -1069,7 +1069,7 @@ function App() {
     <main className={route === "home" ? "home-shell" : "shop-shell"}>
       <header className="topbar">
         <button className="brand" onClick={goHome}>
-          <img src={logo} alt="Diagramclo" />
+          <img src={logo} alt="Diagramclo™" />
         </button>
         <nav aria-label="Primary">
           <a href="#new">New</a>
@@ -1092,17 +1092,17 @@ function App() {
       {route === "home" ? (
         <section
           className="hero"
-          aria-label="Diagramclo homepage"
+          aria-label="Diagramclo™ homepage"
           style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}
         >
-          <h1>DIAGRAMCLO</h1>
+          <h1>DIAGRAMCLO™</h1>
           <a className="hero-shop" href="#shop">Shop</a>
           <a className="signup-tab" href="#signup">Sign up</a>
         </section>
       ) : isShopRoute ? (
         <section className="shop shop-page" id="shop">
           <div className="shop-page-heading">
-            <p>{route === "limited" ? "Low stock and limited pieces" : "Diagramclo store"}</p>
+            <p>{route === "limited" ? "Low stock and limited pieces" : "Diagramclo™ store"}</p>
             <h1>{shopTitle}</h1>
           </div>
           <div className="shop-toolbar">
@@ -1244,7 +1244,7 @@ function App() {
           <div className="policy-hero">
             <p>Shop by edit</p>
             <h1>Collections</h1>
-            <span>Browse Diagramclo pieces by category, then narrow the shop by size, color, stock, and price.</span>
+            <span>Browse Diagramclo™ pieces by category, then narrow the shop by size, color, stock, and price.</span>
           </div>
           <div className="collection-grid">
             {collectionCards.length ? (
@@ -1289,7 +1289,7 @@ function App() {
               <span>Studio Service</span>
               <h2>Custom apparel and small-run production.</h2>
               <p>
-                Diagramclo can support custom pieces, team apparel, event uniforms, and limited private runs
+                Diagramclo™ can support custom pieces, team apparel, event uniforms, and limited private runs
                 shaped around your visual direction.
               </p>
             </article>
@@ -1425,7 +1425,7 @@ function App() {
             <p>Customer Care</p>
             <h1>Shipping &amp; Delivery</h1>
             <span>
-              Delivery information for Diagramclo orders, including processing windows,
+              Delivery information for Diagramclo™ orders, including processing windows,
               Lagos delivery, nationwide shipping, and order tracking.
             </span>
           </div>
@@ -1648,7 +1648,7 @@ function App() {
                   {authUser.role === "ADMIN" && <a href="#admin">Open admin</a>}
                 </>
               ) : (
-                <p>Sign in to track orders and manage your Diagramclo account.</p>
+                <p>Sign in to track orders and manage your Diagramclo™ account.</p>
               )}
             </aside>
           </div>
