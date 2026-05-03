@@ -324,38 +324,16 @@ nav a,
 
 .footer-social .payment-methods {
   display: grid;
-  gap: 7px 10px;
+  gap: 8px 12px;
   grid-template-columns: repeat(3, auto);
   margin-top: 10px;
 }
 
 .payment-logo {
   display: block;
-  fill: #050505;
-  height: 18px;
+  height: 38px;
+  object-fit: contain;
   width: auto;
-}
-
-.payment-logo text {
-  dominant-baseline: auto;
-  fill: #050505;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.mastercard-logo circle {
-  fill: none;
-  stroke: #050505;
-  stroke-width: 2;
-}
-
-.mastercard-logo text {
-  font-size: 9px;
-}
-
-.bank-logo {
-  height: 19px;
 }
 
 .currency-selector {

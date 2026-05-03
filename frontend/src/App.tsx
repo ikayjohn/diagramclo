@@ -1,4 +1,10 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
+import bankTransferIcon from "./assets/icons/bank-transfer-svgrepo-com.svg";
+import mastercardIcon from "./assets/icons/mastercard-svgrepo-com(2).svg";
+import paypalIcon from "./assets/icons/paypal-svgrepo-com.svg";
+import stripeIcon from "./assets/icons/credit-card-stripe-svgrepo-com.svg";
+import verveIcon from "./assets/icons/verve-2-svgrepo-com.svg";
+import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
 import logo from "./assets/logo-transparent.png";
 
@@ -167,6 +173,14 @@ const currencies = [
 
 const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
 const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
+const paymentIcons = [
+  { label: "Visa", src: visaIcon },
+  { label: "Mastercard", src: mastercardIcon },
+  { label: "Verve", src: verveIcon },
+  { label: "Stripe", src: stripeIcon },
+  { label: "PayPal", src: paypalIcon },
+  { label: "Bank transfer", src: bankTransferIcon },
+] as const;
 
 type CurrencyCode = (typeof currencies)[number]["code"];
 
@@ -1053,33 +1067,9 @@ function App() {
           </select>
         </label>
         <div className="payment-methods" aria-label="Accepted payment methods">
-          <svg className="payment-logo visa-logo" viewBox="0 0 64 22" role="img" aria-label="Visa">
-            <title>Visa</title>
-            <text x="2" y="16">VISA</text>
-          </svg>
-          <svg className="payment-logo mastercard-logo" viewBox="0 0 70 22" role="img" aria-label="Mastercard">
-            <title>Mastercard</title>
-            <circle cx="25" cy="11" r="9" />
-            <circle cx="36" cy="11" r="9" />
-            <text x="49" y="14">MC</text>
-          </svg>
-          <svg className="payment-logo verve-logo" viewBox="0 0 70 22" role="img" aria-label="Verve">
-            <title>Verve</title>
-            <text x="2" y="16">VERVE</text>
-          </svg>
-          <svg className="payment-logo paystack-logo" viewBox="0 0 88 22" role="img" aria-label="Paystack">
-            <title>Paystack</title>
-            <rect x="2" y="5" width="17" height="2" />
-            <rect x="2" y="9" width="22" height="2" />
-            <rect x="2" y="13" width="14" height="2" />
-            <text x="30" y="16">PAYSTACK</text>
-          </svg>
-          <svg className="payment-logo bank-logo" viewBox="0 0 116 22" role="img" aria-label="Bank Transfer">
-            <title>Bank Transfer</title>
-            <path d="M4 9h18L13 3 4 9Z" />
-            <path d="M6 10h14v2H6zM7 13h2v5H7zM12 13h2v5h-2zM17 13h2v5h-2zM5 19h16v2H5z" />
-            <text x="30" y="16">BANK TRANSFER</text>
-          </svg>
+          {paymentIcons.map((icon) => (
+            <img className="payment-logo" src={icon.src} alt={icon.label} key={icon.label} />
+          ))}
         </div>
       </div>
 
