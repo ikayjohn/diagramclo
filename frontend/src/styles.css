@@ -324,10 +324,11 @@ nav a,
 
 .payment-methods {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   justify-content: start;
   margin-top: 8px;
+  white-space: nowrap;
 }
 
 .payment-methods span {
@@ -1753,6 +1754,11 @@ form button {
 
   .home-footer {
     gap: 28px;
+  }
+
+  .payment-methods {
+    flex-wrap: wrap;
+    white-space: normal;
   }
 
   .status-line {
