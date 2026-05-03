@@ -5,6 +5,7 @@ Self-hosted clothing commerce foundation.
 ## Stack
 
 - Backend API: Node.js, Express, TypeScript
+- Frontend: React, Vite, TypeScript
 - Database: PostgreSQL
 - ORM: Prisma
 - Deployment: Docker Compose
@@ -21,6 +22,13 @@ Install backend dependencies:
 
 ```bash
 cd backend
+npm install
+```
+
+Install frontend dependencies:
+
+```bash
+cd frontend
 npm install
 ```
 
@@ -57,10 +65,25 @@ Start the backend in development:
 npm run dev
 ```
 
+Start the storefront in another terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+The storefront runs at `http://localhost:5173` and talks to the backend through `VITE_API_URL`.
+
 Health check:
 
 ```bash
 curl http://localhost:4000/health
+```
+
+Run all services with Docker Compose:
+
+```bash
+docker compose up -d --build
 ```
 
 ## API Surface
