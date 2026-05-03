@@ -322,7 +322,7 @@ nav a,
   text-align: right;
 }
 
-.payment-methods {
+.footer-social .payment-methods {
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
