@@ -142,7 +142,7 @@ type Route =
   | "shop"
   | "collections"
   | "limited"
-  | "editorial"
+  | "custom"
   | "checkout"
   | "shipping"
   | "contact"
@@ -269,7 +269,7 @@ const getRouteFromHash = (): Route => {
   if (window.location.hash === "#shop") return "shop";
   if (window.location.hash === "#collections") return "collections";
   if (window.location.hash === "#limited") return "limited";
-  if (window.location.hash === "#editorial") return "editorial";
+  if (window.location.hash === "#custom") return "custom";
   if (window.location.hash === "#checkout") return "checkout";
   if (window.location.hash === "#shipping-delivery") return "shipping";
   if (window.location.hash === "#contact") return "contact";
@@ -1007,7 +1007,7 @@ function App() {
           <a href="#collections">Collections</a>
           <a href="#shop">Shop All</a>
           <a href="#limited">Limited</a>
-          <a href="#editorial">Editorial</a>
+          <a href="#custom">Custom</a>
         </nav>
         <nav className="utility-nav" aria-label="Account">
           <a href="#shop">Search</a>
@@ -1278,27 +1278,27 @@ function App() {
             )}
           </div>
         </section>
-      ) : route === "editorial" ? (
-        <section className="editorial-page" id="editorial">
-          <div className="editorial-hero" style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}>
-            <p>Editorial</p>
-            <h1>Diagramclo Studies</h1>
+      ) : route === "custom" ? (
+        <section className="custom-page" id="custom">
+          <div className="custom-hero" style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}>
+            <p>Custom</p>
+            <h1>Custom Work</h1>
           </div>
-          <div className="editorial-grid">
+          <div className="custom-grid">
             <article>
-              <span>Studio Note</span>
-              <h2>Lagos-built uniforms for daily movement.</h2>
+              <span>Studio Service</span>
+              <h2>Custom apparel and small-run production.</h2>
               <p>
-                Diagramclo works through apparel, objects, and visual language shaped by street-level routine,
-                small-run production, and the pace of Lagos.
+                Diagramclo can support custom pieces, team apparel, event uniforms, and limited private runs
+                shaped around your visual direction.
               </p>
             </article>
             <article>
-              <span>Drop Format</span>
-              <h2>Limited stock, clean utility, direct release.</h2>
+              <span>Enquiries</span>
+              <h2>Send the brief, quantity, timeline, and references.</h2>
               <p>
-                Collections are kept tight so each release stays focused. Shop new arrivals when live,
-                track your order from account, and use customer care for fit or delivery questions.
+                For custom work, contact customer care with the item type, preferred colors, size range,
+                deadline, and any artwork or placement references.
               </p>
             </article>
           </div>
