@@ -299,13 +299,14 @@ nav a,
 .footer-social {
   align-content: start;
   display: grid;
-  gap: 46px;
+  gap: 34px;
   justify-items: start;
 }
 
-.footer-social div {
+.footer-social-links,
+.footer-commerce {
   display: grid;
-  gap: 4px;
+  gap: 5px;
 }
 
 .footer-copyright {
@@ -326,7 +327,7 @@ nav a,
   display: grid;
   gap: 8px 12px;
   grid-template-columns: repeat(3, auto);
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .payment-logo {

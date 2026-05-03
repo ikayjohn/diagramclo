@@ -2,7 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from
 import bankTransferIcon from "./assets/icons/bank-transfer-svgrepo-com.svg";
 import mastercardIcon from "./assets/icons/mastercard-svgrepo-com(2).svg";
 import paypalIcon from "./assets/icons/paypal-svgrepo-com.svg";
-import stripeIcon from "./assets/icons/credit-card-stripe-svgrepo-com.svg";
+import paystackIcon from "./assets/icons/paystack-2.svg";
 import verveIcon from "./assets/icons/verve-2-svgrepo-com.svg";
 import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
@@ -177,7 +177,7 @@ const paymentIcons = [
   { label: "Visa", src: visaIcon },
   { label: "Mastercard", src: mastercardIcon },
   { label: "Verve", src: verveIcon },
-  { label: "Stripe", src: stripeIcon },
+  { label: "Paystack", src: paystackIcon },
   { label: "PayPal", src: paypalIcon },
   { label: "Bank transfer", src: bankTransferIcon },
 ] as const;
@@ -1044,32 +1044,34 @@ function App() {
       </div>
 
       <div className="footer-social">
-        <div>
-          <h3>Instagram</h3>
+        <div className="footer-social-links">
+          <h3>Social</h3>
           <a href="https://www.instagram.com/diagramonlinee/" target="_blank" rel="noreferrer">
-            Follow us @diagramonlinee
+            Instagram @diagramonlinee
           </a>
           <a href="https://www.snapchat.com/@diagramclo" target="_blank" rel="noreferrer">
             Snapchat @diagramclo
           </a>
         </div>
-        <label className="currency-selector">
-          <span>Currency</span>
-          <select
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-          >
-            {currencies.map((item) => (
-              <option value={item.code} key={item.code}>
-                {item.label}
-              </option>
+        <div className="footer-commerce">
+          <label className="currency-selector">
+            <span>Currency</span>
+            <select
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
+            >
+              {currencies.map((item) => (
+                <option value={item.code} key={item.code}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="payment-methods" aria-label="Accepted payment methods">
+            {paymentIcons.map((icon) => (
+              <img className="payment-logo" src={icon.src} alt={icon.label} key={icon.label} />
             ))}
-          </select>
-        </label>
-        <div className="payment-methods" aria-label="Accepted payment methods">
-          {paymentIcons.map((icon) => (
-            <img className="payment-logo" src={icon.src} alt={icon.label} key={icon.label} />
-          ))}
+          </div>
         </div>
       </div>
 
