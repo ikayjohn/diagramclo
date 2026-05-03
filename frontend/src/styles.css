@@ -38,21 +38,24 @@ a {
 
 .topbar {
   align-items: center;
-  background: transparent;
-  color: #ffffff;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.12);
+  color: #050505;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(145px, 0.9fr) auto minmax(330px, 0.85fr) auto;
   height: 80px;
   padding: 0 20px;
-  position: absolute;
+  position: relative;
   width: 100%;
   z-index: 30;
 }
 
-.shop-shell .topbar {
-  background: #ffffff;
-  color: #050505;
+.home-shell .topbar {
+  background: transparent;
+  border-bottom: 0;
+  color: #ffffff;
+  position: absolute;
 }
 
 .shop-shell .brand,
@@ -381,7 +384,7 @@ nav a,
 
 .shop-page {
   min-height: 100svh;
-  padding: 96px 8px 60px;
+  padding: 16px 8px 60px;
 }
 
 .shop-page-heading {
@@ -575,7 +578,7 @@ nav a,
   background: #ffffff;
   color: #050505;
   min-height: 100svh;
-  padding: 116px clamp(16px, 5vw, 72px) 72px;
+  padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
 .collection-grid {
@@ -776,7 +779,7 @@ nav a,
 
 .checkout-page {
   min-height: 100svh;
-  padding: 116px clamp(16px, 5vw, 72px) 72px;
+  padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
 .checkout-grid {
@@ -845,7 +848,7 @@ nav a,
   background: #ffffff;
   color: #050505;
   min-height: 100svh;
-  padding: 116px clamp(16px, 5vw, 72px) 72px;
+  padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
 .policy-hero {
@@ -922,7 +925,7 @@ nav a,
   background: #ffffff;
   color: #050505;
   min-height: 100svh;
-  padding: 116px clamp(16px, 5vw, 72px) 72px;
+  padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
 .account-grid {

@@ -996,6 +996,75 @@ function App() {
     }
   };
 
+  const siteFooter = (
+    <footer className="home-footer" id="footer">
+      <div className="footer-column">
+        <h3>Customer Care</h3>
+        <a href="#contact">Contact</a>
+        <a href="#shipping-delivery">Shipping &amp; Delivery</a>
+        <a href="#privacy-policy">Privacy Policy</a>
+        <a href="#terms-of-service">Terms of Service</a>
+      </div>
+
+      <div className="footer-column">
+        <h3>Info</h3>
+        <a href="#care-guide">Care Guide</a>
+        <a href="#size-guide">Size Guide</a>
+        <a href="#order-tracking">Order Tracking</a>
+      </div>
+
+      <div className="footer-subscribe">
+        <h3>Subscribe</h3>
+        <p>Sign up to receive emails from us, so you never miss out on the good stuff.</p>
+        <form>
+          <label>
+            Name
+            <input aria-label="Name" />
+          </label>
+          <label>
+            Email
+            <input aria-label="Email" type="email" />
+          </label>
+        </form>
+        <button type="button">Subscribe</button>
+      </div>
+
+      <div className="footer-social">
+        <div>
+          <h3>Instagram</h3>
+          <a href="https://www.instagram.com/diagramonlinee/" target="_blank" rel="noreferrer">
+            Follow us @diagramonlinee
+          </a>
+          <a href="https://www.snapchat.com/@diagramclo" target="_blank" rel="noreferrer">
+            Snapchat @diagramclo
+          </a>
+        </div>
+        <label className="currency-selector">
+          <span>Currency</span>
+          <select
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
+          >
+            {currencies.map((item) => (
+              <option value={item.code} key={item.code}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <p className="footer-copyright">© 2026 Diagramclo</p>
+      <div className="payment-methods" aria-label="Accepted payment methods">
+        <span>Visa</span>
+        <span>Mastercard</span>
+        <span>Verve</span>
+        <span>Paystack</span>
+        <span>Bank Transfer</span>
+      </div>
+    </footer>
+  );
+
   return (
     <main className={route === "home" ? "home-shell" : "shop-shell"}>
       <header className="topbar">
@@ -1021,84 +1090,15 @@ function App() {
       </header>
 
       {route === "home" ? (
-        <>
-          <section
-            className="hero"
-            aria-label="Diagramclo homepage"
-            style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}
-          >
-            <h1>DIAGRAMCLO</h1>
-            <a className="hero-shop" href="#shop">Shop</a>
-            <a className="signup-tab" href="#signup">Sign up</a>
-          </section>
-
-          <footer className="home-footer" id="footer">
-            <div className="footer-column">
-              <h3>Customer Care</h3>
-              <a href="#contact">Contact</a>
-              <a href="#shipping-delivery">Shipping &amp; Delivery</a>
-              <a href="#privacy-policy">Privacy Policy</a>
-              <a href="#terms-of-service">Terms of Service</a>
-            </div>
-
-            <div className="footer-column">
-              <h3>Info</h3>
-              <a href="#care-guide">Care Guide</a>
-              <a href="#size-guide">Size Guide</a>
-              <a href="#order-tracking">Order Tracking</a>
-            </div>
-
-            <div className="footer-subscribe">
-              <h3>Subscribe</h3>
-              <p>Sign up to receive emails from us, so you never miss out on the good stuff.</p>
-              <form>
-                <label>
-                  Name
-                  <input aria-label="Name" />
-                </label>
-                <label>
-                  Email
-                  <input aria-label="Email" type="email" />
-                </label>
-              </form>
-              <button type="button">Subscribe</button>
-            </div>
-
-            <div className="footer-social">
-              <div>
-                <h3>Instagram</h3>
-                <a href="https://www.instagram.com/diagramonlinee/" target="_blank" rel="noreferrer">
-                  Follow us @diagramonlinee
-                </a>
-                <a href="https://www.snapchat.com/@diagramclo" target="_blank" rel="noreferrer">
-                  Snapchat @diagramclo
-                </a>
-              </div>
-              <label className="currency-selector">
-                <span>Currency</span>
-                <select
-                  value={currency}
-                  onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-                >
-                  {currencies.map((item) => (
-                    <option value={item.code} key={item.code}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <p className="footer-copyright">© 2026 Diagramclo</p>
-            <div className="payment-methods" aria-label="Accepted payment methods">
-              <span>Visa</span>
-              <span>Mastercard</span>
-              <span>Verve</span>
-              <span>Paystack</span>
-              <span>Bank Transfer</span>
-            </div>
-          </footer>
-        </>
+        <section
+          className="hero"
+          aria-label="Diagramclo homepage"
+          style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}
+        >
+          <h1>DIAGRAMCLO</h1>
+          <a className="hero-shop" href="#shop">Shop</a>
+          <a className="signup-tab" href="#signup">Sign up</a>
+        </section>
       ) : isShopRoute ? (
         <section className="shop shop-page" id="shop">
           <div className="shop-page-heading">
@@ -2062,6 +2062,8 @@ function App() {
           </div>
         </section>
       )}
+
+      {siteFooter}
 
       {detailProduct && (
         <div className="detail-backdrop" onClick={() => setDetailProductId(null)}>
