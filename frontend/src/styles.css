@@ -920,6 +920,13 @@ nav a,
   margin-top: clamp(28px, 5vw, 70px);
 }
 
+.admin-orders {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  margin-top: clamp(28px, 5vw, 70px);
+}
+
 .admin-product-card {
   border-top: 2px solid #050505;
   display: grid;
@@ -928,17 +935,29 @@ nav a,
   padding-top: 18px;
 }
 
-.admin-product-card h2 {
+.admin-order-card {
+  border-top: 2px solid #050505;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.5fr);
+  padding-top: 18px;
+}
+
+.admin-product-card h2,
+.admin-order-card h2 {
   font-size: clamp(24px, 4vw, 54px);
   font-weight: 900;
   letter-spacing: -0.045em;
   line-height: 0.9;
   margin: 0 0 8px;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .admin-product-card p,
-.admin-variant-row span {
+.admin-order-card p,
+.admin-variant-row span,
+.admin-order-items span {
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
@@ -956,6 +975,44 @@ nav a,
   min-height: 32px;
   padding: 0 12px;
   text-transform: uppercase;
+}
+
+.admin-order-controls {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-order-controls label {
+  color: #050505;
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-order-controls select {
+  border: 1px solid #050505;
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.admin-order-items {
+  border-top: 1px solid rgba(5, 5, 5, 0.18);
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+  padding-top: 10px;
+}
+
+.admin-order-address {
+  grid-column: 1 / -1;
 }
 
 .admin-variants {
@@ -1490,6 +1547,8 @@ form button {
   .policy-grid,
   .faq-list article,
   .admin-product-card,
+  .admin-order-card,
+  .admin-order-controls,
   .admin-variant-row {
     grid-template-columns: 1fr;
   }

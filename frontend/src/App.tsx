@@ -89,6 +89,7 @@ type TrackedOrder = {
   paymentStatus: string;
   totalCents: number;
   customerEmail: string;
+  customerPhone?: string | null;
   createdAt: string;
   items: Array<{
     id: string;
@@ -159,6 +160,9 @@ const currencies = [
   { code: "GBP", label: "GBP / £", locale: "en-GB", rateFromNgn: 0.0005 },
   { code: "EUR", label: "EUR / €", locale: "de-DE", rateFromNgn: 0.00058 },
 ] as const;
+
+const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
+const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
 
 type CurrencyCode = (typeof currencies)[number]["code"];
 
@@ -309,6 +313,7 @@ function App() {
   const [trackedOrder, setTrackedOrder] = useState<TrackedOrder | null>(null);
   const [customerOrders, setCustomerOrders] = useState<TrackedOrder[]>([]);
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+  const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [shopSearch, setShopSearch] = useState("");
@@ -468,6 +473,15 @@ function App() {
       .catch((error) => {
         console.error(error);
         setAdminProducts([]);
+      });
+
+    request<{ orders: TrackedOrder[] }>("/orders/admin/all", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then(({ orders }) => setAdminOrders(orders))
+      .catch((error) => {
+        console.error(error);
+        setAdminOrders([]);
       });
   }, [authToken, authUser]);
 
@@ -882,6 +896,36 @@ function App() {
       setNotice("Variant updated.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not update variant.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const refreshAdminOrders = async () => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    const { orders } = await request<{ orders: TrackedOrder[] }>("/orders/admin/all", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    setAdminOrders(orders);
+  };
+
+  const updateAdminOrder = async (
+    orderId: string,
+    data: Partial<Pick<TrackedOrder, "status" | "paymentStatus">>,
+  ) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    setBusy(orderId);
+
+    try {
+      const { order } = await request<{ order: TrackedOrder }>(`/orders/admin/${orderId}`, {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(data),
+      });
+      setAdminOrders((current) => current.map((item) => (item.id === order.id ? order : item)));
+      setNotice("Order updated.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update order.");
     } finally {
       setBusy(null);
     }
@@ -1788,72 +1832,138 @@ function App() {
             <aside className="account-panel">
               <h2>Catalog</h2>
               <p>{adminProducts.length || products.length} products loaded.</p>
+              <p>{adminOrders.length} recent orders.</p>
               {authUser?.role !== "ADMIN" && <a href="#login">Login as admin</a>}
             </aside>
             {authUser?.role === "ADMIN" && (
-              <section className="admin-catalog">
-                <div className="shop-toolbar">
-                  <span>{notice}</span>
-                  <button type="button" onClick={refreshAdminProducts}>Refresh catalog</button>
-                </div>
-                {adminProducts.map((product) => (
-                  <article className="admin-product-card" key={product.id}>
-                    <div>
-                      <h2>{product.name}</h2>
-                      <p>{product.slug}</p>
-                      <p>{product.description}</p>
-                    </div>
-                    <div className="admin-actions">
-                      <button
-                        type="button"
-                        disabled={busy === product.id}
-                        onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}
-                      >
-                        {product.isActive ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                    <div className="admin-variants">
-                      {product.variants.map((variant) => (
-                        <div className="admin-variant-row" key={variant.id}>
-                          <span>
-                            {variant.sku}<br />
-                            {variant.color} / {variant.size}
-                          </span>
-                          <label>
-                            Stock
-                            <input
-                              type="number"
-                              min="0"
-                              defaultValue={variant.stockQuantity}
-                              onBlur={(event) =>
-                                updateAdminVariant(variant.id, { stockQuantity: Number(event.target.value) })
-                              }
-                            />
-                          </label>
-                          <label>
-                            Price
-                            <input
-                              type="number"
-                              min="1"
-                              defaultValue={variant.priceCents / 100}
-                              onBlur={(event) =>
-                                updateAdminVariant(variant.id, { priceCents: Math.round(Number(event.target.value) * 100) })
-                              }
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            disabled={busy === variant.id}
-                            onClick={() => updateAdminVariant(variant.id, { isActive: !variant.isActive })}
-                          >
-                            {variant.isActive ? "Hide" : "Show"}
-                          </button>
+              <>
+                <section className="admin-orders">
+                  <div className="shop-toolbar">
+                    <span>{adminOrders.length} recent orders</span>
+                    <button type="button" onClick={refreshAdminOrders}>Refresh orders</button>
+                  </div>
+                  {adminOrders.length ? (
+                    adminOrders.map((order) => (
+                      <article className="admin-order-card" key={order.id}>
+                        <div>
+                          <h2>{order.id}</h2>
+                          <p>
+                            {order.customerEmail}
+                            {order.customerPhone ? ` / ${order.customerPhone}` : ""}
+                          </p>
+                          <p>{new Date(order.createdAt).toLocaleString()}</p>
+                          <p>{order.items.length} items / {formatPrice(order.totalCents)}</p>
                         </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </section>
+                        <div className="admin-order-controls">
+                          <label>
+                            Order status
+                            <select
+                              value={order.status}
+                              disabled={busy === order.id}
+                              onChange={(event) => updateAdminOrder(order.id, { status: event.target.value })}
+                            >
+                              {orderStatuses.map((status) => (
+                                <option value={status} key={status}>{status}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Payment
+                            <select
+                              value={order.paymentStatus}
+                              disabled={busy === order.id}
+                              onChange={(event) => updateAdminOrder(order.id, { paymentStatus: event.target.value })}
+                            >
+                              {paymentStatuses.map((status) => (
+                                <option value={status} key={status}>{status}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="admin-order-items">
+                          {order.items.map((item) => (
+                            <span key={item.id}>
+                              {item.productName} / {item.color} / {item.size} x {item.quantity}
+                            </span>
+                          ))}
+                        </div>
+                        {order.shippingAddress && (
+                          <p className="admin-order-address">
+                            {order.shippingAddress.fullName}, {order.shippingAddress.line1}
+                            {order.shippingAddress.line2 ? `, ${order.shippingAddress.line2}` : ""}, {order.shippingAddress.city}, {order.shippingAddress.state}
+                          </p>
+                        )}
+                      </article>
+                    ))
+                  ) : (
+                    <p className="empty-bag">No orders yet.</p>
+                  )}
+                </section>
+
+                <section className="admin-catalog">
+                  <div className="shop-toolbar">
+                    <span>{notice}</span>
+                    <button type="button" onClick={refreshAdminProducts}>Refresh catalog</button>
+                  </div>
+                  {adminProducts.map((product) => (
+                    <article className="admin-product-card" key={product.id}>
+                      <div>
+                        <h2>{product.name}</h2>
+                        <p>{product.slug}</p>
+                        <p>{product.description}</p>
+                      </div>
+                      <div className="admin-actions">
+                        <button
+                          type="button"
+                          disabled={busy === product.id}
+                          onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}
+                        >
+                          {product.isActive ? "Deactivate" : "Activate"}
+                        </button>
+                      </div>
+                      <div className="admin-variants">
+                        {product.variants.map((variant) => (
+                          <div className="admin-variant-row" key={variant.id}>
+                            <span>
+                              {variant.sku}<br />
+                              {variant.color} / {variant.size}
+                            </span>
+                            <label>
+                              Stock
+                              <input
+                                type="number"
+                                min="0"
+                                defaultValue={variant.stockQuantity}
+                                onBlur={(event) =>
+                                  updateAdminVariant(variant.id, { stockQuantity: Number(event.target.value) })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Price
+                              <input
+                                type="number"
+                                min="1"
+                                defaultValue={variant.priceCents / 100}
+                                onBlur={(event) =>
+                                  updateAdminVariant(variant.id, { priceCents: Math.round(Number(event.target.value) * 100) })
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              disabled={busy === variant.id}
+                              onClick={() => updateAdminVariant(variant.id, { isActive: !variant.isActive })}
+                            >
+                              {variant.isActive ? "Hide" : "Show"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </section>
+              </>
             )}
           </div>
         </section>

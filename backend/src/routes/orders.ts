@@ -1,9 +1,9 @@
-import { InventoryReason } from "@prisma/client";
+import { InventoryReason, OrderStatus, PaymentStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { httpError } from "../lib/http-error.js";
 import { prisma } from "../lib/prisma.js";
-import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
+import { type AuthenticatedRequest, requireAdmin, requireAuth } from "../middleware/auth.js";
 
 export const ordersRouter = Router();
 
@@ -28,6 +28,11 @@ const checkoutSchema = z.object({
 
 const orderLookupSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
+});
+
+const adminOrderUpdateSchema = z.object({
+  status: z.nativeEnum(OrderStatus).optional(),
+  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
 });
 
 const orderInclude = {
@@ -160,6 +165,40 @@ ordersRouter.get("/me", requireAuth, async (req, res, next) => {
     });
 
     res.json({ orders });
+  } catch (error) {
+    next(error);
+  }
+});
+
+ordersRouter.get("/admin/all", requireAdmin, async (_req, res, next) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: orderInclude,
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    res.json({ orders });
+  } catch (error) {
+    next(error);
+  }
+});
+
+ordersRouter.patch("/admin/:orderId", requireAdmin, async (req, res, next) => {
+  try {
+    const orderId = req.params.orderId;
+    if (typeof orderId !== "string" || !orderId) {
+      throw httpError(400, "Order ID is required");
+    }
+
+    const input = adminOrderUpdateSchema.parse(req.body);
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: input,
+      include: orderInclude,
+    });
+
+    res.json({ order });
   } catch (error) {
     next(error);
   }
