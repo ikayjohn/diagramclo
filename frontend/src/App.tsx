@@ -18,6 +18,7 @@ type ProductVariant = {
   priceCents: number;
   compareAtCents: number | null;
   stockQuantity: number;
+  isActive: boolean;
 };
 
 type Product = {
@@ -25,6 +26,7 @@ type Product = {
   name: string;
   slug: string;
   description: string | null;
+  isActive: boolean;
   category: { name: string; slug: string } | null;
   images: ProductImage[];
   variants: ProductVariant[];
@@ -53,6 +55,102 @@ type CheckoutForm = {
   state: string;
 };
 
+type Address = CheckoutForm & {
+  id: string;
+  country: string;
+  postalCode: string | null;
+};
+
+type AuthUser = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  role: "CUSTOMER" | "ADMIN";
+};
+
+type AuthForm = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+};
+
+type TrackingForm = {
+  orderId: string;
+  email: string;
+};
+
+type TrackedOrder = {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  totalCents: number;
+  customerEmail: string;
+  createdAt: string;
+  items: Array<{
+    id: string;
+    productName: string;
+    variantSku: string;
+    size: string;
+    color: string;
+    quantity: number;
+    lineTotalCents: number;
+  }>;
+  shippingAddress: {
+    fullName: string;
+    line1: string;
+    line2: string | null;
+    city: string;
+    state: string;
+    country: string;
+  } | null;
+};
+
+type AdminProductForm = {
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl: string;
+  imageAlt: string;
+  sku: string;
+  size: string;
+  color: string;
+  priceNaira: string;
+  stockQuantity: string;
+};
+
+type DashboardProfileForm = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+};
+
+type AddressForm = CheckoutForm & {
+  country: string;
+  postalCode: string;
+};
+
+type Route =
+  | "home"
+  | "shop"
+  | "checkout"
+  | "shipping"
+  | "contact"
+  | "privacy"
+  | "terms"
+  | "care"
+  | "size"
+  | "tracking"
+  | "login"
+  | "signup"
+  | "account"
+  | "admin";
+
+type PolicyRoute = "contact" | "privacy" | "terms" | "care" | "size";
+
 const currencies = [
   { code: "NGN", label: "NGN / ₦", locale: "en-NG", rateFromNgn: 1 },
   { code: "USD", label: "USD / $", locale: "en-US", rateFromNgn: 0.00063 },
@@ -63,6 +161,115 @@ const currencies = [
 type CurrencyCode = (typeof currencies)[number]["code"];
 
 const jsonHeaders = { "Content-Type": "application/json" };
+
+const policyPages: Record<PolicyRoute, {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  sideTitle: string;
+  sideNotes: string[];
+  sections: Array<{ title: string; body: string }>;
+}> = {
+  contact: {
+    eyebrow: "Customer Care",
+    title: "Contact",
+    intro: "Reach Diagramclo for orders, delivery support, sizing questions, and store enquiries.",
+    sideTitle: "Studio",
+    sideNotes: [
+      "7a JOK Mall, Bisola Durotimi Etti Road, Lekki Phase 1, Lagos.",
+      "+234 708 251 8504",
+      "For order support, include your order ID and checkout email.",
+    ],
+    sections: [
+      { title: "Order support", body: "Send your order ID, full name, and checkout email so we can locate your order quickly." },
+      { title: "Product questions", body: "For sizing, fit, restock, and product care questions, include the item name and preferred size." },
+      { title: "Social", body: "You can also reach us on Instagram at @diagramonlinee or Snapchat at @diagramclo." },
+    ],
+  },
+  privacy: {
+    eyebrow: "Legal",
+    title: "Privacy Policy",
+    intro: "How Diagramclo handles customer information used for accounts, orders, delivery, and support.",
+    sideTitle: "Data Use",
+    sideNotes: [
+      "We collect only the details needed to run the store and deliver orders.",
+      "Customer information is used for checkout, account access, shipping, and support.",
+    ],
+    sections: [
+      { title: "Information we collect", body: "We collect account details, checkout contact details, delivery addresses, order history, and payment status information needed to process purchases." },
+      { title: "How we use it", body: "Your information is used to create accounts, confirm orders, arrange delivery, provide support, and improve the shopping experience." },
+      { title: "Sharing", body: "Delivery details may be shared with courier partners when needed to fulfill an order. We do not sell customer information." },
+      { title: "Access", body: "Customers can update profile details and saved addresses from the account dashboard." },
+    ],
+  },
+  terms: {
+    eyebrow: "Legal",
+    title: "Terms of Service",
+    intro: "The basic terms for using the Diagramclo storefront and placing orders.",
+    sideTitle: "Store Terms",
+    sideNotes: [
+      "Orders are subject to product availability and successful confirmation.",
+      "Prices, stock, and product details may change before checkout is completed.",
+    ],
+    sections: [
+      { title: "Orders", body: "Placing an order confirms that the checkout information provided is accurate and that you are authorized to use the selected payment method." },
+      { title: "Product availability", body: "Items may sell out during launches or limited drops. If an item becomes unavailable after checkout, we will contact you about the next steps." },
+      { title: "Delivery", body: "Delivery timelines begin after order confirmation. Delays may occur due to courier coverage, public holidays, incorrect addresses, or launch volume." },
+      { title: "Store updates", body: "Diagramclo may update these terms as the store, delivery process, or customer services change." },
+    ],
+  },
+  care: {
+    eyebrow: "Info",
+    title: "Care Guide",
+    intro: "Simple care notes to help Diagramclo pieces keep their shape, color, and finish.",
+    sideTitle: "General Care",
+    sideNotes: [
+      "Wash less often where possible.",
+      "Turn garments inside out before washing.",
+      "Avoid high heat when drying or ironing.",
+    ],
+    sections: [
+      { title: "Washing", body: "Wash cold with similar colors. Use mild detergent and avoid bleach unless the garment care label specifically allows it." },
+      { title: "Drying", body: "Air dry when possible. If using a dryer, choose low heat to reduce shrinkage and protect prints, embroidery, and fabric finish." },
+      { title: "Denim and dark colors", body: "Dark garments and denim can transfer dye. Wash separately for the first few washes and avoid contact with light surfaces while damp." },
+      { title: "Storage", body: "Store pieces clean and dry. Fold heavyweight knits and structured items instead of hanging them for long periods." },
+    ],
+  },
+  size: {
+    eyebrow: "Info",
+    title: "Size Guide",
+    intro: "Fit guidance for choosing Diagramclo apparel sizes before checkout.",
+    sideTitle: "Fit Notes",
+    sideNotes: [
+      "Check each product's available sizes before adding to cart.",
+      "When between sizes, size up for a relaxed fit.",
+      "Product-specific measurements can vary by garment style.",
+    ],
+    sections: [
+      { title: "Tops", body: "For tees, shirts, and hoodies, choose your usual size for a standard fit or one size up for a looser streetwear fit." },
+      { title: "Bottoms", body: "For trousers, shorts, and denim, use waist fit as the priority and consider leg shape if you prefer relaxed or straight silhouettes." },
+      { title: "Outerwear", body: "For jackets, consider the layers you plan to wear underneath. Size up if you want room for hoodies or heavier tops." },
+      { title: "Need help", body: "Contact customer care with your height, usual size, and the item you want. We can help you choose the best fit." },
+    ],
+  },
+};
+
+const getRouteFromHash = (): Route => {
+  if (window.location.hash === "#shop") return "shop";
+  if (window.location.hash === "#checkout") return "checkout";
+  if (window.location.hash === "#shipping-delivery") return "shipping";
+  if (window.location.hash === "#contact") return "contact";
+  if (window.location.hash === "#privacy-policy") return "privacy";
+  if (window.location.hash === "#terms-of-service") return "terms";
+  if (window.location.hash === "#care-guide") return "care";
+  if (window.location.hash === "#size-guide") return "size";
+  if (window.location.hash === "#order-tracking") return "tracking";
+  if (window.location.hash === "#login") return "login";
+  if (window.location.hash === "#signup") return "signup";
+  if (window.location.hash === "#account") return "account";
+  if (window.location.hash === "#admin") return "admin";
+  return "home";
+};
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, options);
@@ -76,15 +283,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 function App() {
-  const [route, setRoute] = useState(
-    window.location.hash === "#shop"
-      ? "shop"
-      : window.location.hash === "#checkout"
-        ? "checkout"
-        : window.location.hash === "#shipping-delivery"
-          ? "shipping"
-          : "home",
-  );
+  const [route, setRoute] = useState(getRouteFromHash);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -95,6 +294,49 @@ function App() {
   const [notice, setNotice] = useState("Loading shop.");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [currency, setCurrency] = useState<CurrencyCode>("NGN");
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem("diagramclo_token") ?? "");
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authForm, setAuthForm] = useState<AuthForm>({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+  });
+  const [trackingForm, setTrackingForm] = useState<TrackingForm>({ orderId: "", email: "" });
+  const [trackedOrder, setTrackedOrder] = useState<TrackedOrder | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<TrackedOrder[]>([]);
+  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [profileForm, setProfileForm] = useState<DashboardProfileForm>({
+    firstName: "",
+    lastName: "",
+    phone: "",
+  });
+  const [adminProduct, setAdminProduct] = useState<AdminProductForm>({
+    name: "",
+    slug: "",
+    description: "",
+    imageUrl: "",
+    imageAlt: "",
+    sku: "",
+    size: "",
+    color: "",
+    priceNaira: "",
+    stockQuantity: "0",
+  });
+  const [addressForm, setAddressForm] = useState<AddressForm>({
+    email: "",
+    phone: "",
+    fullName: "",
+    line1: "",
+    line2: "",
+    city: "Lagos",
+    state: "Lagos",
+    country: "Nigeria",
+    postalCode: "",
+  });
   const [checkout, setCheckout] = useState<CheckoutForm>({
     email: "",
     phone: "",
@@ -146,20 +388,80 @@ function App() {
 
   useEffect(() => {
     const syncRoute = () => {
-      setRoute(
-        window.location.hash === "#shop"
-          ? "shop"
-          : window.location.hash === "#checkout"
-            ? "checkout"
-            : window.location.hash === "#shipping-delivery"
-              ? "shipping"
-              : "home",
-      );
+      setRoute(getRouteFromHash());
     };
 
     window.addEventListener("hashchange", syncRoute);
     return () => window.removeEventListener("hashchange", syncRoute);
   }, []);
+
+  useEffect(() => {
+    if (!authToken) {
+      setAuthUser(null);
+      return;
+    }
+
+    request<{ user: AuthUser }>("/auth/me", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then(({ user }) => setAuthUser(user))
+      .catch(() => {
+        localStorage.removeItem("diagramclo_token");
+        setAuthToken("");
+        setAuthUser(null);
+      });
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    setProfileForm({
+      firstName: authUser.firstName ?? "",
+      lastName: authUser.lastName ?? "",
+      phone: authUser.phone ?? "",
+    });
+    setCheckout((current) => ({
+      ...current,
+      email: current.email || authUser.email,
+      phone: current.phone || authUser.phone || "",
+      fullName: current.fullName || [authUser.firstName, authUser.lastName].filter(Boolean).join(" "),
+    }));
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authToken || !authUser || authUser.role !== "CUSTOMER") return;
+
+    Promise.all([
+      request<{ orders: TrackedOrder[] }>("/orders/me", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+      request<{ addresses: Address[] }>("/auth/me/addresses", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    ])
+      .then(([ordersResult, addressesResult]) => {
+        setCustomerOrders(ordersResult.orders);
+        setAddresses(addressesResult.addresses);
+      })
+      .catch((error) => {
+        console.error(error);
+        setCustomerOrders([]);
+        setAddresses([]);
+      });
+  }, [authToken, authUser]);
+
+  useEffect(() => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+
+    request<{ products: Product[] }>("/products/admin/all", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then(({ products: nextProducts }) => setAdminProducts(nextProducts))
+      .catch((error) => {
+        console.error(error);
+        setAdminProducts([]);
+      });
+  }, [authToken, authUser]);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? products[0],
@@ -170,6 +472,7 @@ function App() {
     () => products.find((product) => product.id === detailProductId) ?? null,
     [products, detailProductId],
   );
+  const policyPage = policyPages[route as PolicyRoute];
 
   const cartTotal = useMemo(
     () =>
@@ -243,6 +546,278 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const saveAuth = (token: string, user: AuthUser) => {
+    localStorage.setItem("diagramclo_token", token);
+    setAuthToken(token);
+    setAuthUser(user);
+    setNotice(`Signed in as ${user.email}.`);
+    window.location.hash = user.role === "ADMIN" ? "admin" : "account";
+  };
+
+  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy("login");
+    try {
+      const { token, user } = await request<{ token: string; user: AuthUser }>("/auth/login", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ email: authForm.email, password: authForm.password }),
+      });
+      saveAuth(token, user);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not sign in.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitSignup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy("signup");
+    try {
+      const { token, user } = await request<{ token: string; user: AuthUser }>("/auth/register", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          email: authForm.email,
+          password: authForm.password,
+          firstName: authForm.firstName || undefined,
+          lastName: authForm.lastName || undefined,
+          phone: authForm.phone || undefined,
+        }),
+      });
+      saveAuth(token, user);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not create account.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("diagramclo_token");
+    setAuthToken("");
+    setAuthUser(null);
+    setNotice("Signed out.");
+    window.location.hash = "login";
+  };
+
+  const submitProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!authToken) return;
+
+    setBusy("profile");
+    try {
+      const { user } = await request<{ user: AuthUser }>("/auth/me", {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          firstName: profileForm.firstName || undefined,
+          lastName: profileForm.lastName || undefined,
+          phone: profileForm.phone || undefined,
+        }),
+      });
+      setAuthUser(user);
+      setNotice("Profile updated.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update profile.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const applyAddressToCheckout = (address: Address) => {
+    setSelectedAddressId(address.id);
+    setCheckout((current) => ({
+      ...current,
+      phone: address.phone,
+      fullName: address.fullName,
+      line1: address.line1,
+      line2: address.line2 ?? "",
+      city: address.city,
+      state: address.state,
+    }));
+  };
+
+  const submitAddress = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!authToken) return;
+
+    setBusy("address");
+    try {
+      const { address } = await request<{ address: Address }>("/auth/me/addresses", {
+        method: "POST",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          fullName: addressForm.fullName,
+          phone: addressForm.phone,
+          line1: addressForm.line1,
+          line2: addressForm.line2 || undefined,
+          city: addressForm.city,
+          state: addressForm.state,
+          country: addressForm.country,
+          postalCode: addressForm.postalCode || undefined,
+        }),
+      });
+      setAddresses((current) => [address, ...current]);
+      setAddressForm({
+        email: "",
+        phone: "",
+        fullName: "",
+        line1: "",
+        line2: "",
+        city: "Lagos",
+        state: "Lagos",
+        country: "Nigeria",
+        postalCode: "",
+      });
+      setNotice("Address saved.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not save address.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteAddress = async (addressId: string) => {
+    if (!authToken) return;
+
+    setBusy(addressId);
+    try {
+      await request(`/auth/me/addresses/${addressId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      setAddresses((current) => current.filter((address) => address.id !== addressId));
+      if (selectedAddressId === addressId) {
+        setSelectedAddressId("");
+      }
+      setNotice("Address removed.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not remove address.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitTracking = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy("tracking");
+    try {
+      const { order } = await request<{ order: TrackedOrder }>(
+        `/orders/${trackingForm.orderId}?email=${encodeURIComponent(trackingForm.email)}`,
+      );
+      setTrackedOrder(order);
+      setNotice("Order found.");
+    } catch (error) {
+      setTrackedOrder(null);
+      setNotice(error instanceof Error ? error.message : "Order not found.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitAdminProduct = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!authToken || authUser?.role !== "ADMIN") {
+      setNotice("Admin access is required.");
+      return;
+    }
+
+    setBusy("admin-product");
+    try {
+      const { product } = await request<{ product: Product }>("/products", {
+        method: "POST",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          name: adminProduct.name,
+          slug: adminProduct.slug,
+          description: adminProduct.description || undefined,
+          images: adminProduct.imageUrl
+            ? [{ url: adminProduct.imageUrl, altText: adminProduct.imageAlt || adminProduct.name }]
+            : undefined,
+          variants: [
+            {
+              sku: adminProduct.sku,
+              size: adminProduct.size,
+              color: adminProduct.color,
+              priceCents: Math.round(Number(adminProduct.priceNaira) * 100),
+              stockQuantity: Number(adminProduct.stockQuantity),
+            },
+          ],
+        }),
+      });
+      setProducts((current) => [product, ...current]);
+      setAdminProducts((current) => [product, ...current]);
+      setAdminProduct({
+        name: "",
+        slug: "",
+        description: "",
+        imageUrl: "",
+        imageAlt: "",
+        sku: "",
+        size: "",
+        color: "",
+        priceNaira: "",
+        stockQuantity: "0",
+      });
+      setNotice(`${product.name} created.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not create product.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const refreshAdminProducts = async () => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    const { products: nextProducts } = await request<{ products: Product[] }>("/products/admin/all", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    setAdminProducts(nextProducts);
+  };
+
+  const updateAdminProduct = async (productId: string, data: Partial<Pick<Product, "isActive" | "name" | "description">>) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+
+    setBusy(productId);
+    try {
+      await request(`/products/${productId}`, {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(data),
+      });
+      await refreshAdminProducts();
+      setNotice("Product updated.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update product.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const updateAdminVariant = async (
+    variantId: string,
+    data: Partial<Pick<ProductVariant, "stockQuantity" | "priceCents" | "isActive">>,
+  ) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+
+    setBusy(variantId);
+    try {
+      await request(`/products/variants/${variantId}`, {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify(data),
+      });
+      await refreshAdminProducts();
+      setNotice("Variant updated.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update variant.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const submitOrder = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!cart || cart.items.length === 0) {
@@ -283,7 +858,7 @@ function App() {
   };
 
   return (
-    <main className={route === "shop" || route === "checkout" || route === "shipping" ? "shop-shell" : "home-shell"}>
+    <main className={route === "home" ? "home-shell" : "shop-shell"}>
       <header className="topbar">
         <button className="brand" onClick={goHome}>
           <img src={logo} alt="Diagramclo" />
@@ -296,8 +871,10 @@ function App() {
           <a href="#shop">Editorial</a>
         </nav>
         <nav className="utility-nav" aria-label="Account">
-          <a href="#footer">Search</a>
-          <a href="#checkout">Account</a>
+          <a href="#shop">Search</a>
+          <a href={authUser ? (authUser.role === "ADMIN" ? "#admin" : "#account") : "#login"}>
+            {authUser ? "Account" : "Login"}
+          </a>
         </nav>
         <button className="bag-button" onClick={() => setCartOpen(true)}>
           Cart<sup>{cartCount}</sup>
@@ -313,23 +890,23 @@ function App() {
           >
             <h1>DIAGRAMCLO</h1>
             <a className="hero-shop" href="#shop">Shop</a>
-            <a className="signup-tab" href="#footer">Sign up</a>
+            <a className="signup-tab" href="#signup">Sign up</a>
           </section>
 
           <footer className="home-footer" id="footer">
             <div className="footer-column">
               <h3>Customer Care</h3>
-              <a href="#footer">Contact</a>
+              <a href="#contact">Contact</a>
               <a href="#shipping-delivery">Shipping &amp; Delivery</a>
-              <a href="#footer">Privacy Policy</a>
-              <a href="#footer">Terms of Service</a>
+              <a href="#privacy-policy">Privacy Policy</a>
+              <a href="#terms-of-service">Terms of Service</a>
             </div>
 
             <div className="footer-column">
               <h3>Info</h3>
-              <a href="#footer">Care Guide</a>
-              <a href="#footer">Size Guide</a>
-              <a href="#footer">Order Tracking</a>
+              <a href="#care-guide">Care Guide</a>
+              <a href="#size-guide">Size Guide</a>
+              <a href="#order-tracking">Order Tracking</a>
             </div>
 
             <div className="footer-subscribe">
@@ -449,6 +1026,25 @@ function App() {
               </div>
               {!orderId && (
                 <>
+                  {authUser && addresses.length > 0 && (
+                    <label>
+                      Saved address
+                      <select
+                        value={selectedAddressId}
+                        onChange={(event) => {
+                          const address = addresses.find((item) => item.id === event.target.value);
+                          if (address) applyAddressToCheckout(address);
+                        }}
+                      >
+                        <option value="">Choose saved address</option>
+                        {addresses.map((address) => (
+                          <option value={address.id} key={address.id}>
+                            {address.fullName} - {address.line1}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <label>
                     Email
                     <input
@@ -535,7 +1131,7 @@ function App() {
             </aside>
           </div>
         </section>
-      ) : (
+      ) : route === "shipping" ? (
         <section className="policy-page" id="shipping-delivery">
           <div className="policy-hero">
             <p>Customer Care</p>
@@ -612,6 +1208,503 @@ function App() {
                 </p>
               </article>
             </div>
+          </div>
+        </section>
+      ) : policyPage ? (
+        <section className="policy-page" id={route}>
+          <div className="policy-hero">
+            <p>{policyPage.eyebrow}</p>
+            <h1>{policyPage.title}</h1>
+            <span>{policyPage.intro}</span>
+          </div>
+
+          <div className="policy-grid">
+            <aside>
+              <h2>{policyPage.sideTitle}</h2>
+              {policyPage.sideNotes.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </aside>
+
+            <div className="faq-list">
+              {policyPage.sections.map((section) => (
+                <article key={section.title}>
+                  <h2>{section.title}</h2>
+                  <p>{section.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : route === "tracking" ? (
+        <section className="account-page" id="order-tracking">
+          <div className="account-grid">
+            <form className="account-form" onSubmit={submitTracking}>
+              <p>Customer Care</p>
+              <h1>Order Tracking</h1>
+              <span>{notice}</span>
+              <label>
+                Order ID
+                <input
+                  required
+                  value={trackingForm.orderId}
+                  onChange={(event) => setTrackingForm({ ...trackingForm, orderId: event.target.value })}
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  required
+                  value={trackingForm.email}
+                  onChange={(event) => setTrackingForm({ ...trackingForm, email: event.target.value })}
+                />
+              </label>
+              <button disabled={busy === "tracking"} type="submit">
+                {busy === "tracking" ? "Checking" : "Track order"}
+              </button>
+            </form>
+            <aside className="account-panel">
+              {trackedOrder ? (
+                <>
+                  <h2>{trackedOrder.status}</h2>
+                  <p>Payment: {trackedOrder.paymentStatus}</p>
+                  <p>Total: {formatPrice(trackedOrder.totalCents)}</p>
+                  <p>Email: {trackedOrder.customerEmail}</p>
+                  <div className="summary-total">
+                    <span>Items</span>
+                    <strong>{trackedOrder.items.length}</strong>
+                  </div>
+                  {trackedOrder.items.map((item) => (
+                    <div className="summary-line" key={item.id}>
+                      <span>
+                        {item.productName}<br />
+                        {item.color} / {item.size} x {item.quantity}
+                      </span>
+                      <strong>{formatPrice(item.lineTotalCents)}</strong>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p>Enter your order ID and email to view order status and delivery details.</p>
+              )}
+            </aside>
+          </div>
+        </section>
+      ) : route === "login" || route === "signup" ? (
+        <section className="account-page" id={route}>
+          <div className="account-grid">
+            <form className="account-form" onSubmit={route === "login" ? submitLogin : submitSignup}>
+              <p>Account</p>
+              <h1>{route === "login" ? "Login" : "Sign up"}</h1>
+              <span>{notice}</span>
+              {route === "signup" && (
+                <div className="field-pair">
+                  <label>
+                    First name
+                    <input
+                      value={authForm.firstName}
+                      onChange={(event) => setAuthForm({ ...authForm, firstName: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Last name
+                    <input
+                      value={authForm.lastName}
+                      onChange={(event) => setAuthForm({ ...authForm, lastName: event.target.value })}
+                    />
+                  </label>
+                </div>
+              )}
+              <label>
+                Email
+                <input
+                  type="email"
+                  required
+                  value={authForm.email}
+                  onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={authForm.password}
+                  onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
+                />
+              </label>
+              {route === "signup" && (
+                <label>
+                  Phone
+                  <input
+                    value={authForm.phone}
+                    onChange={(event) => setAuthForm({ ...authForm, phone: event.target.value })}
+                  />
+                </label>
+              )}
+              <button disabled={busy === route} type="submit">
+                {busy === route ? "Please wait" : route === "login" ? "Login" : "Create account"}
+              </button>
+              <a href={route === "login" ? "#signup" : "#login"}>
+                {route === "login" ? "Create an account" : "Already have an account?"}
+              </a>
+            </form>
+            <aside className="account-panel">
+              {authUser ? (
+                <>
+                  <h2>{authUser.email}</h2>
+                  <p>Role: {authUser.role}</p>
+                  <button type="button" onClick={logout}>Sign out</button>
+                  {authUser.role === "ADMIN" && <a href="#admin">Open admin</a>}
+                </>
+              ) : (
+                <p>Sign in to track orders and manage your Diagramclo account.</p>
+              )}
+            </aside>
+          </div>
+        </section>
+      ) : route === "account" ? (
+        <section className="account-page" id="account">
+          <div className="account-grid">
+            <form className="account-form" onSubmit={submitProfile}>
+              <p>Account</p>
+              <h1>Dashboard</h1>
+              <span>{authUser ? `Signed in as ${authUser.email}` : "Login to view your account."}</span>
+              {authUser ? (
+                <>
+                  <div className="field-pair">
+                    <label>
+                      First name
+                      <input
+                        value={profileForm.firstName}
+                        onChange={(event) => setProfileForm({ ...profileForm, firstName: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Last name
+                      <input
+                        value={profileForm.lastName}
+                        onChange={(event) => setProfileForm({ ...profileForm, lastName: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    Phone
+                    <input
+                      value={profileForm.phone}
+                      onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })}
+                    />
+                  </label>
+                  <button disabled={busy === "profile"} type="submit">
+                    {busy === "profile" ? "Saving" : "Save profile"}
+                  </button>
+                  <button type="button" onClick={logout}>Sign out</button>
+                </>
+              ) : (
+                <a href="#login">Login</a>
+              )}
+            </form>
+            <aside className="account-panel">
+              <h2>Orders</h2>
+              {customerOrders.length ? (
+                customerOrders.map((order) => (
+                  <div className="summary-line" key={order.id}>
+                    <span>
+                      {order.id}<br />
+                      {order.status} / {order.items.length} item{order.items.length === 1 ? "" : "s"}
+                    </span>
+                    <strong>{formatPrice(order.totalCents)}</strong>
+                  </div>
+                ))
+              ) : (
+                <p>No customer orders found yet.</p>
+              )}
+              <a href="#order-tracking">Track another order</a>
+            </aside>
+            {authUser && (
+              <section className="address-section">
+                <div className="account-panel">
+                  <h2>Addresses</h2>
+                  {addresses.length ? (
+                    addresses.map((address) => (
+                      <div className="address-card" key={address.id}>
+                        <p>
+                          {address.fullName}<br />
+                          {address.line1}{address.line2 ? `, ${address.line2}` : ""}<br />
+                          {address.city}, {address.state}<br />
+                          {address.phone}
+                        </p>
+                        <div>
+                          <button type="button" onClick={() => applyAddressToCheckout(address)}>
+                            Use at checkout
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === address.id}
+                            onClick={() => deleteAddress(address.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No saved addresses yet.</p>
+                  )}
+                </div>
+                <form className="account-form" onSubmit={submitAddress}>
+                  <p>Delivery</p>
+                  <h1>Save Address</h1>
+                  <label>
+                    Full name
+                    <input
+                      required
+                      value={addressForm.fullName}
+                      onChange={(event) => setAddressForm({ ...addressForm, fullName: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Phone
+                    <input
+                      required
+                      value={addressForm.phone}
+                      onChange={(event) => setAddressForm({ ...addressForm, phone: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Address line 1
+                    <input
+                      required
+                      value={addressForm.line1}
+                      onChange={(event) => setAddressForm({ ...addressForm, line1: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Address line 2
+                    <input
+                      value={addressForm.line2}
+                      onChange={(event) => setAddressForm({ ...addressForm, line2: event.target.value })}
+                    />
+                  </label>
+                  <div className="field-pair">
+                    <label>
+                      City
+                      <input
+                        required
+                        value={addressForm.city}
+                        onChange={(event) => setAddressForm({ ...addressForm, city: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      State
+                      <input
+                        required
+                        value={addressForm.state}
+                        onChange={(event) => setAddressForm({ ...addressForm, state: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                  <div className="field-pair">
+                    <label>
+                      Country
+                      <input
+                        required
+                        value={addressForm.country}
+                        onChange={(event) => setAddressForm({ ...addressForm, country: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Postal code
+                      <input
+                        value={addressForm.postalCode}
+                        onChange={(event) => setAddressForm({ ...addressForm, postalCode: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                  <button disabled={busy === "address"} type="submit">
+                    {busy === "address" ? "Saving" : "Save address"}
+                  </button>
+                </form>
+              </section>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="account-page" id="admin">
+          <div className="account-grid admin-grid">
+            <form className="account-form" onSubmit={submitAdminProduct}>
+              <p>Admin</p>
+              <h1>Product Management</h1>
+              <span>{authUser?.role === "ADMIN" ? notice : "Login with an admin account to create products."}</span>
+              <label>
+                Product name
+                <input
+                  required
+                  value={adminProduct.name}
+                  onChange={(event) => {
+                    const name = event.target.value;
+                    setAdminProduct({
+                      ...adminProduct,
+                      name,
+                      slug: adminProduct.slug || name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                Slug
+                <input
+                  required
+                  value={adminProduct.slug}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, slug: event.target.value })}
+                />
+              </label>
+              <label>
+                Description
+                <input
+                  value={adminProduct.description}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, description: event.target.value })}
+                />
+              </label>
+              <label>
+                Image URL
+                <input
+                  type="url"
+                  value={adminProduct.imageUrl}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, imageUrl: event.target.value })}
+                />
+              </label>
+              <label>
+                Image alt text
+                <input
+                  value={adminProduct.imageAlt}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, imageAlt: event.target.value })}
+                />
+              </label>
+              <div className="field-pair">
+                <label>
+                  SKU
+                  <input
+                    required
+                    value={adminProduct.sku}
+                    onChange={(event) => setAdminProduct({ ...adminProduct, sku: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Price (NGN)
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    value={adminProduct.priceNaira}
+                    onChange={(event) => setAdminProduct({ ...adminProduct, priceNaira: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="field-pair">
+                <label>
+                  Size
+                  <input
+                    required
+                    value={adminProduct.size}
+                    onChange={(event) => setAdminProduct({ ...adminProduct, size: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Color
+                  <input
+                    required
+                    value={adminProduct.color}
+                    onChange={(event) => setAdminProduct({ ...adminProduct, color: event.target.value })}
+                  />
+                </label>
+              </div>
+              <label>
+                Stock quantity
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  value={adminProduct.stockQuantity}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, stockQuantity: event.target.value })}
+                />
+              </label>
+              <button disabled={busy === "admin-product" || authUser?.role !== "ADMIN"} type="submit">
+                {busy === "admin-product" ? "Creating" : "Create product"}
+              </button>
+            </form>
+            <aside className="account-panel">
+              <h2>Catalog</h2>
+              <p>{adminProducts.length || products.length} products loaded.</p>
+              {authUser?.role !== "ADMIN" && <a href="#login">Login as admin</a>}
+            </aside>
+            {authUser?.role === "ADMIN" && (
+              <section className="admin-catalog">
+                <div className="shop-toolbar">
+                  <span>{notice}</span>
+                  <button type="button" onClick={refreshAdminProducts}>Refresh catalog</button>
+                </div>
+                {adminProducts.map((product) => (
+                  <article className="admin-product-card" key={product.id}>
+                    <div>
+                      <h2>{product.name}</h2>
+                      <p>{product.slug}</p>
+                      <p>{product.description}</p>
+                    </div>
+                    <div className="admin-actions">
+                      <button
+                        type="button"
+                        disabled={busy === product.id}
+                        onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}
+                      >
+                        {product.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
+                    <div className="admin-variants">
+                      {product.variants.map((variant) => (
+                        <div className="admin-variant-row" key={variant.id}>
+                          <span>
+                            {variant.sku}<br />
+                            {variant.color} / {variant.size}
+                          </span>
+                          <label>
+                            Stock
+                            <input
+                              type="number"
+                              min="0"
+                              defaultValue={variant.stockQuantity}
+                              onBlur={(event) =>
+                                updateAdminVariant(variant.id, { stockQuantity: Number(event.target.value) })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Price
+                            <input
+                              type="number"
+                              min="1"
+                              defaultValue={variant.priceCents / 100}
+                              onBlur={(event) =>
+                                updateAdminVariant(variant.id, { priceCents: Math.round(Number(event.target.value) * 100) })
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            disabled={busy === variant.id}
+                            onClick={() => updateAdminVariant(variant.id, { isActive: !variant.isActive })}
+                          >
+                            {variant.isActive ? "Hide" : "Show"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
           </div>
         </section>
       )}

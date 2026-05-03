@@ -18,6 +18,23 @@ const registerSchema = authSchema.extend({
   phone: z.string().min(5).optional(),
 });
 
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  phone: z.string().min(5).optional(),
+});
+
+const addressSchema = z.object({
+  fullName: z.string().min(2),
+  phone: z.string().min(5),
+  line1: z.string().min(3),
+  line2: z.string().optional(),
+  city: z.string().min(2),
+  state: z.string().min(2),
+  country: z.string().min(2).default("Nigeria"),
+  postalCode: z.string().optional(),
+});
+
 const publicUserSelect = {
   id: true,
   email: true,
@@ -98,6 +115,106 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
     }
 
     res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.patch("/me", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = updateProfileSchema.parse(req.body);
+
+    const user = await prisma.user.update({
+      where: { id: authReq.user.sub },
+      data: input,
+      select: publicUserSelect,
+    });
+
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.get("/me/addresses", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const addresses = await prisma.address.findMany({
+      where: { userId: authReq.user.sub },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ addresses });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/me/addresses", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = addressSchema.parse(req.body);
+    const address = await prisma.address.create({
+      data: {
+        ...input,
+        userId: authReq.user.sub,
+      },
+    });
+
+    res.status(201).json({ address });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.patch("/me/addresses/:addressId", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const addressId = req.params.addressId;
+    if (typeof addressId !== "string") {
+      throw httpError(400, "Invalid address ID");
+    }
+
+    const input = addressSchema.partial().parse(req.body);
+    const existing = await prisma.address.findFirst({
+      where: { id: addressId, userId: authReq.user.sub },
+    });
+
+    if (!existing) {
+      throw httpError(404, "Address not found");
+    }
+
+    const address = await prisma.address.update({
+      where: { id: existing.id },
+      data: input,
+    });
+
+    res.json({ address });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.delete("/me/addresses/:addressId", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const addressId = req.params.addressId;
+    if (typeof addressId !== "string") {
+      throw httpError(400, "Invalid address ID");
+    }
+
+    const existing = await prisma.address.findFirst({
+      where: { id: addressId, userId: authReq.user.sub },
+    });
+
+    if (!existing) {
+      throw httpError(404, "Address not found");
+    }
+
+    await prisma.address.delete({ where: { id: existing.id } });
+
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

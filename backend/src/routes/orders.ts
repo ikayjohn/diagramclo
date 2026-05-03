@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { httpError } from "../lib/http-error.js";
 import { prisma } from "../lib/prisma.js";
+import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
 
 export const ordersRouter = Router();
 
@@ -144,6 +145,21 @@ ordersRouter.post("/", async (req, res, next) => {
     });
 
     res.status(201).json({ order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+ordersRouter.get("/me", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const orders = await prisma.order.findMany({
+      where: { userId: authReq.user.sub },
+      include: orderInclude,
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ orders });
   } catch (error) {
     next(error);
   }
