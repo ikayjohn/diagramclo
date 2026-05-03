@@ -138,7 +138,11 @@ type ShopSort = "featured" | "price-low" | "price-high" | "name";
 
 type Route =
   | "home"
+  | "new"
   | "shop"
+  | "collections"
+  | "limited"
+  | "editorial"
   | "checkout"
   | "shipping"
   | "contact"
@@ -261,7 +265,11 @@ const policyPages: Record<PolicyRoute, {
 };
 
 const getRouteFromHash = (): Route => {
+  if (window.location.hash === "#new") return "new";
   if (window.location.hash === "#shop") return "shop";
+  if (window.location.hash === "#collections") return "collections";
+  if (window.location.hash === "#limited") return "limited";
+  if (window.location.hash === "#editorial") return "editorial";
   if (window.location.hash === "#checkout") return "checkout";
   if (window.location.hash === "#shipping-delivery") return "shipping";
   if (window.location.hash === "#contact") return "contact";
@@ -544,6 +552,7 @@ function App() {
           if (shopColor !== "all" && variant.color !== shopColor) return false;
           if (shopAvailability === "in-stock" && variant.stockQuantity < 1) return false;
           if (shopAvailability === "sold-out" && variant.stockQuantity > 0) return false;
+          if (route === "limited" && variant.stockQuantity > 5 && !searchable.includes("limited")) return false;
           return true;
         })
         .map((variant) => ({ product, variant })),
@@ -555,7 +564,24 @@ function App() {
       if (shopSort === "name") return a.product.name.localeCompare(b.product.name);
       return 0;
     });
-  }, [products, shopAvailability, shopCategory, shopColor, shopSearch, shopSize, shopSort]);
+  }, [products, route, shopAvailability, shopCategory, shopColor, shopSearch, shopSize, shopSort]);
+
+  const collectionCards = useMemo(
+    () =>
+      categoryOptions.map((category) => {
+        const categoryProducts = products.filter((product) => product.category?.name === category);
+        const firstProduct = categoryProducts[0];
+        return {
+          name: category,
+          count: categoryProducts.reduce((sum, product) => sum + product.variants.length, 0),
+          image: firstProduct?.images[0],
+        };
+      }),
+    [categoryOptions, products],
+  );
+
+  const shopTitle = route === "new" ? "New Arrivals" : route === "limited" ? "Limited" : "Shop All";
+  const isShopRoute = route === "shop" || route === "new" || route === "limited";
 
   const cartTotal = useMemo(
     () =>
@@ -977,11 +1003,11 @@ function App() {
           <img src={logo} alt="Diagramclo" />
         </button>
         <nav aria-label="Primary">
-          <a href="#shop">New</a>
-          <a href="#shop">Collections</a>
+          <a href="#new">New</a>
+          <a href="#collections">Collections</a>
           <a href="#shop">Shop All</a>
-          <a href="#shop">Limited</a>
-          <a href="#shop">Editorial</a>
+          <a href="#limited">Limited</a>
+          <a href="#editorial">Editorial</a>
         </nav>
         <nav className="utility-nav" aria-label="Account">
           <a href="#shop">Search</a>
@@ -1073,8 +1099,12 @@ function App() {
             </div>
           </footer>
         </>
-      ) : route === "shop" ? (
+      ) : isShopRoute ? (
         <section className="shop shop-page" id="shop">
+          <div className="shop-page-heading">
+            <p>{route === "limited" ? "Low stock and limited pieces" : "Diagramclo store"}</p>
+            <h1>{shopTitle}</h1>
+          </div>
           <div className="shop-toolbar">
             <span>
               {shopItems.length} {shopItems.length === 1 ? "item" : "items"} / {notice}
@@ -1207,6 +1237,70 @@ function App() {
                 <p>Try another search, size, color, or category.</p>
               </div>
             )}
+          </div>
+        </section>
+      ) : route === "collections" ? (
+        <section className="collections-page" id="collections">
+          <div className="policy-hero">
+            <p>Shop by edit</p>
+            <h1>Collections</h1>
+            <span>Browse Diagramclo pieces by category, then narrow the shop by size, color, stock, and price.</span>
+          </div>
+          <div className="collection-grid">
+            {collectionCards.length ? (
+              collectionCards.map((collection) => (
+                <a
+                  className="collection-card"
+                  href="#shop"
+                  key={collection.name}
+                  onClick={() => {
+                    setShopCategory(collection.name);
+                    setShopSearch("");
+                    setShopSize("all");
+                    setShopColor("all");
+                    setShopAvailability("all");
+                  }}
+                >
+                  <div>
+                    {collection.image ? (
+                      <img src={`${collection.image.url}?auto=format&fit=crop&w=800&q=88`} alt={collection.image.altText ?? collection.name} />
+                    ) : null}
+                  </div>
+                  <span>{collection.count} items</span>
+                  <h2>{collection.name}</h2>
+                </a>
+              ))
+            ) : (
+              <div className="shop-empty">
+                <h2>No collections yet.</h2>
+                <p>Add categories and products from admin.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ) : route === "editorial" ? (
+        <section className="editorial-page" id="editorial">
+          <div className="editorial-hero" style={{ "--hero-image": `url(${homeHero})` } as CSSProperties}>
+            <p>Editorial</p>
+            <h1>Diagramclo Studies</h1>
+          </div>
+          <div className="editorial-grid">
+            <article>
+              <span>Studio Note</span>
+              <h2>Lagos-built uniforms for daily movement.</h2>
+              <p>
+                Diagramclo works through apparel, objects, and visual language shaped by street-level routine,
+                small-run production, and the pace of Lagos.
+              </p>
+            </article>
+            <article>
+              <span>Drop Format</span>
+              <h2>Limited stock, clean utility, direct release.</h2>
+              <p>
+                Collections are kept tight so each release stays focused. Shop new arrivals when live,
+                track your order from account, and use customer care for fit or delivery questions.
+              </p>
+            </article>
           </div>
         </section>
       ) : route === "checkout" ? (
