@@ -3,6 +3,7 @@ import bankTransferIcon from "./assets/icons/bank-transfer-svgrepo-com.svg";
 import mastercardIcon from "./assets/icons/mastercard-svgrepo-com(2).svg";
 import paypalIcon from "./assets/icons/paypal-svgrepo-com.svg";
 import paystackIcon from "./assets/icons/paystack-2.svg";
+import stripeIcon from "./assets/icons/credit-card-stripe-svgrepo-com.svg";
 import verveIcon from "./assets/icons/verve-2-svgrepo-com.svg";
 import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
@@ -173,11 +174,12 @@ const currencies = [
 
 const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
 const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
-const paymentIcons = [
+const paymentIcons: Array<{ label: string; src: string; className?: string }> = [
   { label: "Visa", src: visaIcon },
   { label: "Mastercard", src: mastercardIcon },
   { label: "Verve", src: verveIcon },
-  { label: "Paystack", src: paystackIcon },
+  { label: "Paystack", src: paystackIcon, className: "paystack-logo" },
+  { label: "Stripe", src: stripeIcon },
   { label: "PayPal", src: paypalIcon },
   { label: "Bank transfer", src: bankTransferIcon },
 ] as const;
@@ -1069,7 +1071,12 @@ function App() {
           </label>
           <div className="payment-methods" aria-label="Accepted payment methods">
             {paymentIcons.map((icon) => (
-              <img className="payment-logo" src={icon.src} alt={icon.label} key={icon.label} />
+              <img
+                className={icon.className ? `payment-logo ${icon.className}` : "payment-logo"}
+                src={icon.src}
+                alt={icon.label}
+                key={icon.label}
+              />
             ))}
           </div>
         </div>
