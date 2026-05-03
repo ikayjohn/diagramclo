@@ -323,23 +323,39 @@ nav a,
 }
 
 .footer-social .payment-methods {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  justify-content: start;
-  margin-top: 8px;
-  white-space: nowrap;
+  display: grid;
+  gap: 7px 10px;
+  grid-template-columns: repeat(3, auto);
+  margin-top: 10px;
 }
 
-.payment-methods span {
-  align-items: center;
-  border: 1px solid #050505;
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 700;
-  min-height: 23px;
-  padding: 0 8px;
-  text-transform: uppercase;
+.payment-logo {
+  display: block;
+  fill: #050505;
+  height: 18px;
+  width: auto;
+}
+
+.payment-logo text {
+  dominant-baseline: auto;
+  fill: #050505;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.mastercard-logo circle {
+  fill: none;
+  stroke: #050505;
+  stroke-width: 2;
+}
+
+.mastercard-logo text {
+  font-size: 9px;
+}
+
+.bank-logo {
+  height: 19px;
 }
 
 .currency-selector {
