@@ -314,14 +314,20 @@ nav a,
   margin-top: 48px;
 }
 
-.payment-methods {
+.footer-credit {
   align-self: end;
+  grid-column: 3 / 5;
+  justify-self: end;
+  margin-top: 48px;
+  text-align: right;
+}
+
+.payment-methods {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  grid-column: 3 / 5;
-  justify-content: end;
-  margin-top: 48px;
+  justify-content: start;
+  margin-top: 8px;
 }
 
 .payment-methods span {

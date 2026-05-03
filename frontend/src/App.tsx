@@ -1052,16 +1052,19 @@ function App() {
             ))}
           </select>
         </label>
+        <div className="payment-methods" aria-label="Accepted payment methods">
+          <span>Visa</span>
+          <span>Mastercard</span>
+          <span>Verve</span>
+          <span>Paystack</span>
+          <span>Bank Transfer</span>
+        </div>
       </div>
 
       <p className="footer-copyright">© 2026 Diagramclo™</p>
-      <div className="payment-methods" aria-label="Accepted payment methods">
-        <span>Visa</span>
-        <span>Mastercard</span>
-        <span>Verve</span>
-        <span>Paystack</span>
-        <span>Bank Transfer</span>
-      </div>
+      <a className="footer-credit" href="mailto:southcastng@gmail.com">
+        Built &amp; managed by Southcast Company.
+      </a>
     </footer>
   );
 
