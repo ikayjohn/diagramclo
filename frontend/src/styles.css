@@ -340,6 +340,7 @@ nav a,
 }
 
 .payment-logo.paystack-logo {
+  filter: brightness(0);
   height: 18px;
 }
 
