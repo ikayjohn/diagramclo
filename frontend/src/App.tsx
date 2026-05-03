@@ -133,6 +133,8 @@ type AddressForm = CheckoutForm & {
   postalCode: string;
 };
 
+type ShopSort = "featured" | "price-low" | "price-high" | "name";
+
 type Route =
   | "home"
   | "shop"
@@ -309,6 +311,12 @@ function App() {
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [shopSearch, setShopSearch] = useState("");
+  const [shopCategory, setShopCategory] = useState("all");
+  const [shopSize, setShopSize] = useState("all");
+  const [shopColor, setShopColor] = useState("all");
+  const [shopAvailability, setShopAvailability] = useState("all");
+  const [shopSort, setShopSort] = useState<ShopSort>("featured");
   const [profileForm, setProfileForm] = useState<DashboardProfileForm>({
     firstName: "",
     lastName: "",
@@ -473,6 +481,67 @@ function App() {
     [products, detailProductId],
   );
   const policyPage = policyPages[route as PolicyRoute];
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.category?.name)
+            .filter((category): category is string => Boolean(category)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const sizeOptions = useMemo(
+    () =>
+      Array.from(new Set(products.flatMap((product) => product.variants.map((variant) => variant.size))))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [products],
+  );
+
+  const colorOptions = useMemo(
+    () =>
+      Array.from(new Set(products.flatMap((product) => product.variants.map((variant) => variant.color))))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const shopItems = useMemo(() => {
+    const normalizedSearch = shopSearch.trim().toLowerCase();
+    const filtered = products.flatMap((product) =>
+      product.variants
+        .filter((variant) => {
+          const searchable = [
+            product.name,
+            product.description ?? "",
+            product.category?.name ?? "",
+            variant.color,
+            variant.size,
+            variant.sku,
+          ].join(" ").toLowerCase();
+
+          if (normalizedSearch && !searchable.includes(normalizedSearch)) return false;
+          if (shopCategory !== "all" && product.category?.name !== shopCategory) return false;
+          if (shopSize !== "all" && variant.size !== shopSize) return false;
+          if (shopColor !== "all" && variant.color !== shopColor) return false;
+          if (shopAvailability === "in-stock" && variant.stockQuantity < 1) return false;
+          if (shopAvailability === "sold-out" && variant.stockQuantity > 0) return false;
+          return true;
+        })
+        .map((variant) => ({ product, variant })),
+    );
+
+    return filtered.sort((a, b) => {
+      if (shopSort === "price-low") return a.variant.priceCents - b.variant.priceCents;
+      if (shopSort === "price-high") return b.variant.priceCents - a.variant.priceCents;
+      if (shopSort === "name") return a.product.name.localeCompare(b.product.name);
+      return 0;
+    });
+  }, [products, shopAvailability, shopCategory, shopColor, shopSearch, shopSize, shopSort]);
 
   const cartTotal = useMemo(
     () =>
@@ -963,13 +1032,89 @@ function App() {
       ) : route === "shop" ? (
         <section className="shop shop-page" id="shop">
           <div className="shop-toolbar">
-            <span>{notice}</span>
-            <button type="button">Sort and filter</button>
+            <span>
+              {shopItems.length} {shopItems.length === 1 ? "item" : "items"} / {notice}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setShopSearch("");
+                setShopCategory("all");
+                setShopSize("all");
+                setShopColor("all");
+                setShopAvailability("all");
+                setShopSort("featured");
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+
+          <div className="shop-filters" aria-label="Shop filters">
+            <label className="shop-search">
+              <span>Search</span>
+              <input
+                value={shopSearch}
+                onChange={(event) => setShopSearch(event.target.value)}
+                placeholder="Search products"
+                type="search"
+              />
+            </label>
+            <label>
+              <span>Category</span>
+              <select value={shopCategory} onChange={(event) => setShopCategory(event.target.value)}>
+                <option value="all">All categories</option>
+                {categoryOptions.map((category) => (
+                  <option value={category} key={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Size</span>
+              <select value={shopSize} onChange={(event) => setShopSize(event.target.value)}>
+                <option value="all">All sizes</option>
+                {sizeOptions.map((size) => (
+                  <option value={size} key={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Color</span>
+              <select value={shopColor} onChange={(event) => setShopColor(event.target.value)}>
+                <option value="all">All colors</option>
+                {colorOptions.map((color) => (
+                  <option value={color} key={color}>
+                    {color}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Stock</span>
+              <select value={shopAvailability} onChange={(event) => setShopAvailability(event.target.value)}>
+                <option value="all">All stock</option>
+                <option value="in-stock">In stock</option>
+                <option value="sold-out">Sold out</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select value={shopSort} onChange={(event) => setShopSort(event.target.value as ShopSort)}>
+                <option value="featured">Featured</option>
+                <option value="price-low">Price low to high</option>
+                <option value="price-high">Price high to low</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
           </div>
 
           <div className="shop-grid">
-            {products.flatMap((product) =>
-              product.variants.map((variant) => (
+            {shopItems.length ? (
+              shopItems.map(({ product, variant }) => (
                 <article className="shop-card" key={variant.id}>
                   <div className="shop-image">
                     {product.images[0] ? (
@@ -1011,7 +1156,12 @@ function App() {
                     </div>
                   </div>
                 </article>
-              )),
+              ))
+            ) : (
+              <div className="shop-empty">
+                <h2>No products found.</h2>
+                <p>Try another search, size, color, or category.</p>
+              </div>
             )}
           </div>
         </section>
