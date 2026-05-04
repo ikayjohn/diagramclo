@@ -131,13 +131,21 @@ type AdminProductForm = {
   slug: string;
   description: string;
   categoryId: string;
-  imageUrl: string;
-  imageAlt: string;
+  images: Array<{ url: string; altText: string }>;
+  variants: Array<{ sku: string; size: string; color: string; priceNaira: string; stockQuantity: string }>;
+};
+
+type NewVariantForm = {
   sku: string;
   size: string;
   color: string;
   priceNaira: string;
   stockQuantity: string;
+};
+
+type NewImageForm = {
+  url: string;
+  altText: string;
 };
 
 type DashboardProfileForm = {
@@ -368,19 +376,21 @@ function App() {
     lastName: "",
     phone: "",
   });
+  const emptyVariant = (): NewVariantForm => ({ sku: "", size: "", color: "", priceNaira: "", stockQuantity: "0" });
+  const emptyImage = (): NewImageForm => ({ url: "", altText: "" });
+
   const [adminProduct, setAdminProduct] = useState<AdminProductForm>({
     name: "",
     slug: "",
     description: "",
     categoryId: "",
-    imageUrl: "",
-    imageAlt: "",
-    sku: "",
-    size: "",
-    color: "",
-    priceNaira: "",
-    stockQuantity: "0",
+    images: [],
+    variants: [emptyVariant()],
   });
+  const [addVariantForms, setAddVariantForms] = useState<Record<string, NewVariantForm>>({});
+  const [addImageForms, setAddImageForms] = useState<Record<string, NewImageForm>>({});
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editProductForm, setEditProductForm] = useState({ name: "", description: "", categoryId: "" });
   const [addressForm, setAddressForm] = useState<AddressForm>({
     email: "",
     phone: "",
@@ -888,18 +898,17 @@ function App() {
           slug: adminProduct.slug,
           description: adminProduct.description || undefined,
           categoryId: adminProduct.categoryId,
-          images: adminProduct.imageUrl
-            ? [{ url: adminProduct.imageUrl, altText: adminProduct.imageAlt || adminProduct.name }]
-            : undefined,
-          variants: [
-            {
-              sku: adminProduct.sku,
-              size: adminProduct.size,
-              color: adminProduct.color,
-              priceCents: Math.round(Number(adminProduct.priceNaira) * 100),
-              stockQuantity: Number(adminProduct.stockQuantity),
-            },
-          ],
+          images: adminProduct.images.filter((img) => img.url).map((img) => ({
+            url: img.url,
+            altText: img.altText || adminProduct.name,
+          })),
+          variants: adminProduct.variants.map((v) => ({
+            sku: v.sku,
+            size: v.size,
+            color: v.color,
+            priceCents: Math.round(Number(v.priceNaira) * 100),
+            stockQuantity: Number(v.stockQuantity),
+          })),
         }),
       });
       setProducts((current) => [product, ...current]);
@@ -909,13 +918,8 @@ function App() {
         slug: "",
         description: "",
         categoryId: "",
-        imageUrl: "",
-        imageAlt: "",
-        sku: "",
-        size: "",
-        color: "",
-        priceNaira: "",
-        stockQuantity: "0",
+        images: [],
+        variants: [emptyVariant()],
       });
       setNotice(`${product.name} created.`);
     } catch (error) {
@@ -1022,6 +1026,111 @@ function App() {
     } catch {
       await refreshAdminCategories();
       setNotice("Reorder failed. Order restored.");
+    }
+  };
+
+  const saveEditProduct = async (productId: string) => {
+    if (!authToken) return;
+    setBusy(productId);
+    try {
+      await request(`/products/${productId}`, {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          name: editProductForm.name || undefined,
+          description: editProductForm.description || undefined,
+          categoryId: editProductForm.categoryId || undefined,
+        }),
+      });
+      await refreshAdminProducts();
+      setEditingProductId(null);
+      setNotice("Product updated.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update product.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitAddVariant = async (productId: string) => {
+    if (!authToken) return;
+    const form = addVariantForms[productId];
+    if (!form) return;
+    setBusy(`add-variant-${productId}`);
+    try {
+      await request(`/products/${productId}/variants`, {
+        method: "POST",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          sku: form.sku,
+          size: form.size,
+          color: form.color,
+          priceCents: Math.round(Number(form.priceNaira) * 100),
+          stockQuantity: Number(form.stockQuantity),
+        }),
+      });
+      await refreshAdminProducts();
+      setAddVariantForms((current) => ({ ...current, [productId]: emptyVariant() }));
+      setNotice("Variant added.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not add variant.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitAddImage = async (productId: string) => {
+    if (!authToken) return;
+    const form = addImageForms[productId];
+    if (!form?.url) return;
+    setBusy(`add-image-${productId}`);
+    try {
+      await request(`/products/${productId}/images`, {
+        method: "POST",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ url: form.url, altText: form.altText || undefined }),
+      });
+      await refreshAdminProducts();
+      setAddImageForms((current) => ({ ...current, [productId]: emptyImage() }));
+      setNotice("Image added.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not add image.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteProductImage = async (imageId: string, productId: string) => {
+    if (!authToken) return;
+    setBusy(imageId);
+    try {
+      await request(`/products/images/${imageId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      await refreshAdminProducts();
+      setNotice("Image removed.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not remove image.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteProductVariant = async (variantId: string) => {
+    if (!authToken) return;
+    setBusy(variantId);
+    try {
+      await request(`/products/variants/${variantId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      await refreshAdminProducts();
+      setNotice("Variant removed.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not remove variant.");
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -2024,69 +2133,62 @@ function App() {
                   ))}
                 </select>
               </label>
-              <label>
-                Image URL
-                <input
-                  type="url"
-                  value={adminProduct.imageUrl}
-                  onChange={(event) => setAdminProduct({ ...adminProduct, imageUrl: event.target.value })}
-                />
-              </label>
-              <label>
-                Image alt text
-                <input
-                  value={adminProduct.imageAlt}
-                  onChange={(event) => setAdminProduct({ ...adminProduct, imageAlt: event.target.value })}
-                />
-              </label>
-              <div className="field-pair">
-                <label>
-                  SKU
-                  <input
-                    required
-                    value={adminProduct.sku}
-                    onChange={(event) => setAdminProduct({ ...adminProduct, sku: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Price (NGN)
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    value={adminProduct.priceNaira}
-                    onChange={(event) => setAdminProduct({ ...adminProduct, priceNaira: event.target.value })}
-                  />
-                </label>
-              </div>
-              <div className="field-pair">
-                <label>
-                  Size
-                  <input
-                    required
-                    value={adminProduct.size}
-                    onChange={(event) => setAdminProduct({ ...adminProduct, size: event.target.value })}
-                  />
-                </label>
-                <label>
-                  Color
-                  <input
-                    required
-                    value={adminProduct.color}
-                    onChange={(event) => setAdminProduct({ ...adminProduct, color: event.target.value })}
-                  />
-                </label>
-              </div>
-              <label>
-                Stock quantity
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  value={adminProduct.stockQuantity}
-                  onChange={(event) => setAdminProduct({ ...adminProduct, stockQuantity: event.target.value })}
-                />
-              </label>
+
+              <p style={{ margin: "0.5rem 0 0.25rem", fontWeight: 600 }}>Images</p>
+              {adminProduct.images.map((img, i) => (
+                <div className="field-pair" key={i}>
+                  <label>
+                    Image URL
+                    <input
+                      type="url"
+                      value={img.url}
+                      onChange={(event) => {
+                        const images = [...adminProduct.images];
+                        images[i] = { ...images[i], url: event.target.value };
+                        setAdminProduct({ ...adminProduct, images });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Alt text
+                    <input
+                      value={img.altText}
+                      onChange={(event) => {
+                        const images = [...adminProduct.images];
+                        images[i] = { ...images[i], altText: event.target.value };
+                        setAdminProduct({ ...adminProduct, images });
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAdminProduct({ ...adminProduct, images: adminProduct.images.filter((_, j) => j !== i) })}
+                  >Remove</button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setAdminProduct({ ...adminProduct, images: [...adminProduct.images, emptyImage()] })}
+              >+ Add image</button>
+
+              <p style={{ margin: "0.75rem 0 0.25rem", fontWeight: 600 }}>Variants</p>
+              {adminProduct.variants.map((v, i) => (
+                <div key={i} style={{ borderLeft: "2px solid #eee", paddingLeft: "0.75rem", marginBottom: "0.5rem" }}>
+                  <div className="field-pair">
+                    <label>SKU <input required value={v.sku} onChange={(e) => { const variants = [...adminProduct.variants]; variants[i] = { ...variants[i], sku: e.target.value }; setAdminProduct({ ...adminProduct, variants }); }} /></label>
+                    <label>Price (NGN) <input required type="number" min="1" value={v.priceNaira} onChange={(e) => { const variants = [...adminProduct.variants]; variants[i] = { ...variants[i], priceNaira: e.target.value }; setAdminProduct({ ...adminProduct, variants }); }} /></label>
+                  </div>
+                  <div className="field-pair">
+                    <label>Size <input required value={v.size} onChange={(e) => { const variants = [...adminProduct.variants]; variants[i] = { ...variants[i], size: e.target.value }; setAdminProduct({ ...adminProduct, variants }); }} /></label>
+                    <label>Color <input required value={v.color} onChange={(e) => { const variants = [...adminProduct.variants]; variants[i] = { ...variants[i], color: e.target.value }; setAdminProduct({ ...adminProduct, variants }); }} /></label>
+                  </div>
+                  <label>Stock <input required type="number" min="0" value={v.stockQuantity} onChange={(e) => { const variants = [...adminProduct.variants]; variants[i] = { ...variants[i], stockQuantity: e.target.value }; setAdminProduct({ ...adminProduct, variants }); }} /></label>
+                  {adminProduct.variants.length > 1 && (
+                    <button type="button" onClick={() => setAdminProduct({ ...adminProduct, variants: adminProduct.variants.filter((_, j) => j !== i) })}>Remove variant</button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={() => setAdminProduct({ ...adminProduct, variants: [...adminProduct.variants, emptyVariant()] })}>+ Add variant</button>
               <button disabled={busy === "admin-product" || authUser?.role !== "ADMIN" || !adminProduct.categoryId} type="submit">
                 {busy === "admin-product" ? "Creating" : "Create product"}
               </button>
@@ -2325,20 +2427,61 @@ function App() {
                   </div>
                   {adminProducts.map((product) => (
                     <article className="admin-product-card" key={product.id}>
-                      <div>
-                        <h2>{product.name}</h2>
-                        <p>{product.slug}</p>
-                        <p>{product.description}</p>
-                      </div>
+                      {editingProductId === product.id ? (
+                        <div className="admin-category-edit">
+                          <div className="field-pair">
+                            <label>Name <input value={editProductForm.name} onChange={(e) => setEditProductForm({ ...editProductForm, name: e.target.value })} /></label>
+                            <label>
+                              Category
+                              <select value={editProductForm.categoryId} onChange={(e) => setEditProductForm({ ...editProductForm, categoryId: e.target.value })}>
+                                <option value="">No category</option>
+                                {adminCategories.map((cat) => <option value={cat.id} key={cat.id}>{cat.name}</option>)}
+                              </select>
+                            </label>
+                          </div>
+                          <label>Description <input value={editProductForm.description} onChange={(e) => setEditProductForm({ ...editProductForm, description: e.target.value })} /></label>
+                          <div className="admin-actions">
+                            <button type="button" disabled={busy === product.id} onClick={() => saveEditProduct(product.id)}>{busy === product.id ? "Saving" : "Save"}</button>
+                            <button type="button" onClick={() => setEditingProductId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <h2>{product.name}</h2>
+                          <p>{product.category?.name ?? "—"} · {product.slug}</p>
+                          <p>{product.description}</p>
+                        </div>
+                      )}
                       <div className="admin-actions">
-                        <button
-                          type="button"
-                          disabled={busy === product.id}
-                          onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}
-                        >
+                        <button type="button" disabled={busy === product.id} onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}>
                           {product.isActive ? "Deactivate" : "Activate"}
                         </button>
+                        {editingProductId !== product.id && (
+                          <button type="button" onClick={() => { setEditingProductId(product.id); setEditProductForm({ name: product.name, description: product.description ?? "", categoryId: product.category?.slug ? (adminCategories.find((c) => c.slug === product.category?.slug)?.id ?? "") : "" }); }}>Edit</button>
+                        )}
                       </div>
+
+                      <div className="admin-variants">
+                        {product.images.map((image) => (
+                          <div className="admin-variant-row" key={image.id}>
+                            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{image.url}</span>
+                            <button type="button" disabled={busy === image.id} onClick={() => deleteProductImage(image.id, product.id)}>Remove image</button>
+                          </div>
+                        ))}
+                        <div className="admin-variant-row">
+                          <input
+                            type="url"
+                            placeholder="Add image URL"
+                            value={addImageForms[product.id]?.url ?? ""}
+                            onChange={(e) => setAddImageForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyImage()), url: e.target.value } }))}
+                            style={{ flex: 1 }}
+                          />
+                          <button type="button" disabled={busy === `add-image-${product.id}` || !addImageForms[product.id]?.url} onClick={() => submitAddImage(product.id)}>
+                            {busy === `add-image-${product.id}` ? "Adding" : "+ Image"}
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="admin-variants">
                         {product.variants.map((variant) => (
                           <div className="admin-variant-row" key={variant.id}>
@@ -2352,9 +2495,7 @@ function App() {
                                 type="number"
                                 min="0"
                                 defaultValue={variant.stockQuantity}
-                                onBlur={(event) =>
-                                  updateAdminVariant(variant.id, { stockQuantity: Number(event.target.value) })
-                                }
+                                onBlur={(event) => updateAdminVariant(variant.id, { stockQuantity: Number(event.target.value) })}
                               />
                             </label>
                             <label>
@@ -2363,20 +2504,25 @@ function App() {
                                 type="number"
                                 min="1"
                                 defaultValue={variant.priceCents / 100}
-                                onBlur={(event) =>
-                                  updateAdminVariant(variant.id, { priceCents: Math.round(Number(event.target.value) * 100) })
-                                }
+                                onBlur={(event) => updateAdminVariant(variant.id, { priceCents: Math.round(Number(event.target.value) * 100) })}
                               />
                             </label>
-                            <button
-                              type="button"
-                              disabled={busy === variant.id}
-                              onClick={() => updateAdminVariant(variant.id, { isActive: !variant.isActive })}
-                            >
+                            <button type="button" disabled={busy === variant.id} onClick={() => updateAdminVariant(variant.id, { isActive: !variant.isActive })}>
                               {variant.isActive ? "Hide" : "Show"}
                             </button>
+                            <button type="button" disabled={busy === variant.id} onClick={() => deleteProductVariant(variant.id)}>Delete</button>
                           </div>
                         ))}
+                        <div className="admin-variant-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+                          <input placeholder="SKU" value={addVariantForms[product.id]?.sku ?? ""} onChange={(e) => setAddVariantForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyVariant()), sku: e.target.value } }))} style={{ width: "80px" }} />
+                          <input placeholder="Size" value={addVariantForms[product.id]?.size ?? ""} onChange={(e) => setAddVariantForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyVariant()), size: e.target.value } }))} style={{ width: "60px" }} />
+                          <input placeholder="Color" value={addVariantForms[product.id]?.color ?? ""} onChange={(e) => setAddVariantForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyVariant()), color: e.target.value } }))} style={{ width: "80px" }} />
+                          <input placeholder="Price NGN" type="number" min="1" value={addVariantForms[product.id]?.priceNaira ?? ""} onChange={(e) => setAddVariantForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyVariant()), priceNaira: e.target.value } }))} style={{ width: "100px" }} />
+                          <input placeholder="Stock" type="number" min="0" value={addVariantForms[product.id]?.stockQuantity ?? "0"} onChange={(e) => setAddVariantForms((cur) => ({ ...cur, [product.id]: { ...(cur[product.id] ?? emptyVariant()), stockQuantity: e.target.value } }))} style={{ width: "60px" }} />
+                          <button type="button" disabled={busy === `add-variant-${product.id}` || !addVariantForms[product.id]?.sku} onClick={() => submitAddVariant(product.id)}>
+                            {busy === `add-variant-${product.id}` ? "Adding" : "+ Variant"}
+                          </button>
+                        </div>
                       </div>
                     </article>
                   ))}

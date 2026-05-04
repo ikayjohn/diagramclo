@@ -32,12 +32,27 @@ const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
+  categoryId: z.string().min(1).optional(),
 });
 
 const updateVariantSchema = z.object({
   priceCents: z.number().int().positive().optional(),
   stockQuantity: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
+});
+
+const addVariantSchema = z.object({
+  sku: z.string().min(2),
+  size: z.string().min(1),
+  color: z.string().min(1),
+  priceCents: z.number().int().positive(),
+  compareAtCents: z.number().int().positive().optional(),
+  stockQuantity: z.number().int().min(0).default(0),
+});
+
+const addImageSchema = z.object({
+  url: z.string().url(),
+  altText: z.string().optional(),
 });
 
 productsRouter.get("/admin/all", requireAdmin, async (_req, res, next) => {
@@ -169,8 +184,14 @@ productsRouter.patch("/:productId", requireAdmin, async (req, res, next) => {
     const input = updateProductSchema.parse(req.body);
     const product = await prisma.product.update({
       where: { id: productId },
-      data: input,
+      data: {
+        name: input.name,
+        description: input.description !== undefined ? (input.description || undefined) : undefined,
+        isActive: input.isActive,
+        categoryId: input.categoryId,
+      },
       include: {
+        category: true,
         images: { orderBy: { sortOrder: "asc" } },
         variants: { orderBy: [{ color: "asc" }, { size: "asc" }] },
       },
@@ -178,6 +199,86 @@ productsRouter.patch("/:productId", requireAdmin, async (req, res, next) => {
 
     res.json({ product });
   } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.post("/:productId/variants", requireAdmin, async (req, res, next) => {
+  try {
+    const productId = req.params.productId as string;
+    const input = addVariantSchema.parse(req.body);
+
+    const variant = await prisma.productVariant.create({
+      data: {
+        productId,
+        sku: input.sku,
+        size: input.size,
+        color: input.color,
+        priceCents: input.priceCents,
+        compareAtCents: input.compareAtCents,
+        stockQuantity: input.stockQuantity,
+      },
+    });
+
+    res.status(201).json({ variant });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      res.status(400).json({ error: "SKU already in use." });
+      return;
+    }
+    next(error);
+  }
+});
+
+productsRouter.post("/:productId/images", requireAdmin, async (req, res, next) => {
+  try {
+    const productId = req.params.productId as string;
+    const input = addImageSchema.parse(req.body);
+
+    const max = await prisma.productImage.aggregate({
+      where: { productId },
+      _max: { sortOrder: true },
+    });
+    const sortOrder = ((max._max?.sortOrder) ?? -1) + 1;
+
+    const image = await prisma.productImage.create({
+      data: { productId, url: input.url, altText: input.altText, sortOrder },
+    });
+
+    res.status(201).json({ image });
+  } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.delete("/images/:imageId", requireAdmin, async (req, res, next) => {
+  try {
+    const imageId = req.params.imageId as string;
+    await prisma.productImage.delete({ where: { id: imageId } });
+    res.json({ ok: true });
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      res.status(404).json({ error: "Image not found." });
+      return;
+    }
+    next(error);
+  }
+});
+
+productsRouter.delete("/variants/:variantId", requireAdmin, async (req, res, next) => {
+  try {
+    const variantId = req.params.variantId as string;
+    await prisma.productVariant.delete({ where: { id: variantId } });
+    res.json({ ok: true });
+  } catch (error: any) {
+    if (error?.code === "P2003") {
+      res.status(400).json({ error: "Variant has orders and cannot be deleted." });
+      return;
+    }
+    if (error?.code === "P2025") {
+      res.status(404).json({ error: "Variant not found." });
+      return;
+    }
     next(error);
   }
 });
