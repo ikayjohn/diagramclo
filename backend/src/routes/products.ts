@@ -9,7 +9,7 @@ const createProductSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   description: z.string().optional(),
-  categoryId: z.string().optional(),
+  categoryId: z.string().min(1),
   images: z.array(
     z.object({
       url: z.string().url(),
@@ -100,6 +100,12 @@ productsRouter.get("/:slug", async (req, res, next) => {
 productsRouter.post("/", requireAdmin, async (req, res, next) => {
   try {
     const input = createProductSchema.parse(req.body);
+
+    const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
+    if (!category) {
+      res.status(400).json({ error: "Category not found." });
+      return;
+    }
 
     const product = await prisma.product.create({
       data: {

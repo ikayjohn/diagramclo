@@ -8,6 +8,7 @@ import { authRouter } from "./routes/auth.js";
 import { cartRouter } from "./routes/cart.js";
 import { healthRouter } from "./routes/health.js";
 import { ordersRouter } from "./routes/orders.js";
+import { categoriesRouter } from "./routes/categories.js";
 import { productsRouter } from "./routes/products.js";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use("/auth", authRouter);
 app.use("/cart", cartRouter);
 app.use("/health", healthRouter);
 app.use("/orders", ordersRouter);
+app.use("/categories", categoriesRouter);
 app.use("/products", productsRouter);
 
 app.use((_req, res) => {

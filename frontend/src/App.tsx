@@ -117,10 +117,20 @@ type TrackedOrder = {
   } | null;
 };
 
+type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  _count: { products: number };
+};
+
 type AdminProductForm = {
   name: string;
   slug: string;
   description: string;
+  categoryId: string;
   imageUrl: string;
   imageAlt: string;
   sku: string;
@@ -338,6 +348,13 @@ function App() {
   const [customerOrders, setCustomerOrders] = useState<TrackedOrder[]>([]);
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
+  const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [adminCategoryForm, setAdminCategoryForm] = useState({ name: "", slug: "", description: "" });
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategoryForm, setEditCategoryForm] = useState({ name: "", slug: "", description: "" });
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [moveToCategory, setMoveToCategory] = useState("");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [shopSearch, setShopSearch] = useState("");
@@ -355,6 +372,7 @@ function App() {
     name: "",
     slug: "",
     description: "",
+    categoryId: "",
     imageUrl: "",
     imageAlt: "",
     sku: "",
@@ -506,6 +524,17 @@ function App() {
       .catch((error) => {
         console.error(error);
         setAdminOrders([]);
+      });
+
+    request<{ categories: AdminCategory[] }>("/categories")
+      .then(({ categories }) => {
+        setAdminCategories(categories);
+        setLoadingCategories(false);
+      })
+      .catch(() => {
+        setAdminCategories([]);
+        setLoadingCategories(false);
+        setNotice("Could not load categories.");
       });
   }, [authToken, authUser]);
 
@@ -858,6 +887,7 @@ function App() {
           name: adminProduct.name,
           slug: adminProduct.slug,
           description: adminProduct.description || undefined,
+          categoryId: adminProduct.categoryId,
           images: adminProduct.imageUrl
             ? [{ url: adminProduct.imageUrl, altText: adminProduct.imageAlt || adminProduct.name }]
             : undefined,
@@ -878,6 +908,7 @@ function App() {
         name: "",
         slug: "",
         description: "",
+        categoryId: "",
         imageUrl: "",
         imageAlt: "",
         sku: "",
@@ -891,6 +922,106 @@ function App() {
       setNotice(error instanceof Error ? error.message : "Could not create product.");
     } finally {
       setBusy(null);
+    }
+  };
+
+  const toSlug = (name: string) =>
+    name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const refreshAdminCategories = async () => {
+    const { categories } = await request<{ categories: AdminCategory[] }>("/categories");
+    setAdminCategories(categories);
+  };
+
+  const submitAdminCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!authToken) return;
+    setBusy("admin-category");
+    try {
+      const { category } = await request<{ category: AdminCategory }>("/categories", {
+        method: "POST",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          name: adminCategoryForm.name,
+          slug: adminCategoryForm.slug,
+          description: adminCategoryForm.description || undefined,
+        }),
+      });
+      setAdminCategories((current) => [...current, category]);
+      setAdminCategoryForm({ name: "", slug: "", description: "" });
+      setNotice(`Category "${category.name}" created.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not create category.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveEditCategory = async (categoryId: string) => {
+    if (!authToken) return;
+    setBusy(categoryId);
+    try {
+      const { category } = await request<{ category: AdminCategory }>(`/categories/${categoryId}`, {
+        method: "PATCH",
+        headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          name: editCategoryForm.name,
+          slug: editCategoryForm.slug,
+          description: editCategoryForm.description || undefined,
+        }),
+      });
+      setAdminCategories((current) => current.map((c) => (c.id === categoryId ? category : c)));
+      setEditingCategoryId(null);
+      setNotice(`Category "${category.name}" updated.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not update category.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteAdminCategory = async (categoryId: string) => {
+    if (!authToken) return;
+    setBusy(categoryId);
+    try {
+      const url = moveToCategory ? `/categories/${categoryId}?moveTo=${moveToCategory}` : `/categories/${categoryId}`;
+      await request(url, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      setAdminCategories((current) => current.filter((c) => c.id !== categoryId));
+      setDeletingCategoryId(null);
+      setMoveToCategory("");
+      setNotice("Category deleted.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not delete category.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const swapCategorySortOrder = async (a: AdminCategory, b: AdminCategory) => {
+    setAdminCategories((current) =>
+      current
+        .map((c) => (c.id === a.id ? { ...c, sortOrder: b.sortOrder } : c.id === b.id ? { ...c, sortOrder: a.sortOrder } : c))
+        .sort((x, y) => x.sortOrder - y.sortOrder),
+    );
+    try {
+      await Promise.all([
+        request(`/categories/${a.id}`, {
+          method: "PATCH",
+          headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ sortOrder: b.sortOrder }),
+        }),
+        request(`/categories/${b.id}`, {
+          method: "PATCH",
+          headers: { ...jsonHeaders, Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ sortOrder: a.sortOrder }),
+        }),
+      ]);
+    } catch {
+      await refreshAdminCategories();
+      setNotice("Reorder failed. Order restored.");
     }
   };
 
@@ -1881,6 +2012,19 @@ function App() {
                 />
               </label>
               <label>
+                Category
+                <select
+                  required
+                  value={adminProduct.categoryId}
+                  onChange={(event) => setAdminProduct({ ...adminProduct, categoryId: event.target.value })}
+                >
+                  <option value="">Select category</option>
+                  {adminCategories.map((cat) => (
+                    <option value={cat.id} key={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 Image URL
                 <input
                   type="url"
@@ -1943,7 +2087,7 @@ function App() {
                   onChange={(event) => setAdminProduct({ ...adminProduct, stockQuantity: event.target.value })}
                 />
               </label>
-              <button disabled={busy === "admin-product" || authUser?.role !== "ADMIN"} type="submit">
+              <button disabled={busy === "admin-product" || authUser?.role !== "ADMIN" || !adminProduct.categoryId} type="submit">
                 {busy === "admin-product" ? "Creating" : "Create product"}
               </button>
             </form>
@@ -1955,6 +2099,162 @@ function App() {
             </aside>
             {authUser?.role === "ADMIN" && (
               <>
+                <section className="admin-categories">
+                  <div className="shop-toolbar">
+                    <span>Categories</span>
+                  </div>
+                  <form onSubmit={submitAdminCategory} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
+                    <div className="field-pair">
+                      <label>
+                        Name
+                        <input
+                          required
+                          value={adminCategoryForm.name}
+                          onChange={(event) => {
+                            const name = event.target.value;
+                            setAdminCategoryForm((current) => ({
+                              ...current,
+                              name,
+                              slug: current.slug || toSlug(name),
+                            }));
+                          }}
+                        />
+                      </label>
+                      <label>
+                        Slug
+                        <input
+                          required
+                          value={adminCategoryForm.slug}
+                          onChange={(event) => setAdminCategoryForm({ ...adminCategoryForm, slug: event.target.value })}
+                        />
+                      </label>
+                    </div>
+                    <label>
+                      Description (optional)
+                      <input
+                        value={adminCategoryForm.description}
+                        onChange={(event) => setAdminCategoryForm({ ...adminCategoryForm, description: event.target.value })}
+                      />
+                    </label>
+                    {adminCategoryForm.slug.length > 0 && adminCategoryForm.slug.length < 2 && (
+                      <small>Slug too short — edit it manually.</small>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={busy === "admin-category" || adminCategoryForm.slug.length < 2}
+                    >
+                      {busy === "admin-category" ? "Creating" : "Add category"}
+                    </button>
+                  </form>
+
+                  {loadingCategories ? (
+                    <p>Loading categories.</p>
+                  ) : adminCategories.length === 0 ? (
+                    <p>No categories yet. Add one above.</p>
+                  ) : (
+                    adminCategories.map((cat, index) => (
+                      <div key={cat.id}>
+                        {editingCategoryId === cat.id ? (
+                          <div className="admin-category-edit">
+                            <div className="field-pair">
+                              <label>
+                                Name
+                                <input
+                                  value={editCategoryForm.name}
+                                  onChange={(event) => setEditCategoryForm({ ...editCategoryForm, name: event.target.value })}
+                                />
+                              </label>
+                              <label>
+                                Slug
+                                <input
+                                  value={editCategoryForm.slug}
+                                  onChange={(event) => setEditCategoryForm({ ...editCategoryForm, slug: event.target.value })}
+                                />
+                              </label>
+                            </div>
+                            <label>
+                              Description
+                              <input
+                                value={editCategoryForm.description}
+                                onChange={(event) => setEditCategoryForm({ ...editCategoryForm, description: event.target.value })}
+                              />
+                            </label>
+                            <div className="admin-actions">
+                              <button type="button" disabled={busy === cat.id} onClick={() => saveEditCategory(cat.id)}>
+                                {busy === cat.id ? "Saving" : "Save"}
+                              </button>
+                              <button type="button" onClick={() => setEditingCategoryId(null)}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="admin-category-row">
+                            <div style={{ flex: 1 }}>
+                              <strong>{cat.name}</strong>
+                              <span style={{ marginLeft: "0.5rem", opacity: 0.5 }}>{cat.slug}</span>
+                              <span style={{ marginLeft: "0.5rem", opacity: 0.5 }}>{cat._count.products} products</span>
+                            </div>
+                            <div className="admin-actions">
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => swapCategorySortOrder(cat, adminCategories[index - 1])}
+                              >↑</button>
+                              <button
+                                type="button"
+                                disabled={index === adminCategories.length - 1}
+                                onClick={() => swapCategorySortOrder(cat, adminCategories[index + 1])}
+                              >↓</button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCategoryId(cat.id);
+                                  setEditCategoryForm({ name: cat.name, slug: cat.slug, description: cat.description ?? "" });
+                                }}
+                              >Edit</button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeletingCategoryId(cat.id);
+                                  setMoveToCategory("");
+                                }}
+                              >Delete</button>
+                            </div>
+                          </div>
+                        )}
+                        {deletingCategoryId === cat.id && (
+                          <div className="admin-category-edit">
+                            {cat._count.products === 0 ? (
+                              <p>Delete &ldquo;{cat.name}&rdquo;?</p>
+                            ) : (
+                              <>
+                                <p>{cat._count.products} products will be moved to:</p>
+                                <select value={moveToCategory} onChange={(event) => setMoveToCategory(event.target.value)}>
+                                  <option value="">— select a category —</option>
+                                  {adminCategories.filter((c) => c.id !== cat.id).map((c) => (
+                                    <option value={c.id} key={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                              </>
+                            )}
+                            <div className="admin-actions">
+                              <button
+                                type="button"
+                                disabled={busy === cat.id || (cat._count.products > 0 && !moveToCategory)}
+                                onClick={() => deleteAdminCategory(cat.id)}
+                              >
+                                {busy === cat.id ? "Deleting" : "Confirm delete"}
+                              </button>
+                              <button type="button" onClick={() => { setDeletingCategoryId(null); setMoveToCategory(""); }}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </section>
+
                 <section className="admin-orders">
                   <div className="shop-toolbar">
                     <span>{adminOrders.length} recent orders</span>
