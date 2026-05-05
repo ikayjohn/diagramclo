@@ -363,6 +363,8 @@ function App() {
   const [editCategoryForm, setEditCategoryForm] = useState({ name: "", slug: "", description: "" });
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [moveToCategory, setMoveToCategory] = useState("");
+  const [subscribeForm, setSubscribeForm] = useState({ name: "", email: "" });
+  const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "busy" | "done">("idle");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [shopSearch, setShopSearch] = useState("");
@@ -929,6 +931,22 @@ function App() {
     }
   };
 
+  const submitSubscribe = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubscribeStatus("busy");
+    try {
+      await request("/newsletter/subscribe", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ email: subscribeForm.email, name: subscribeForm.name || undefined }),
+      });
+      setSubscribeStatus("done");
+    } catch {
+      setSubscribeStatus("idle");
+      setNotice("Could not subscribe. Please try again.");
+    }
+  };
+
   const toSlug = (name: string) =>
     name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -1272,17 +1290,33 @@ function App() {
       <div className="footer-subscribe">
         <h3>Subscribe</h3>
         <p>Sign up to receive emails from us, so you never miss out on the good stuff.</p>
-        <form>
-          <label>
-            Name
-            <input aria-label="Name" />
-          </label>
-          <label>
-            Email
-            <input aria-label="Email" type="email" />
-          </label>
-        </form>
-        <button type="button">Subscribe</button>
+        {subscribeStatus === "done" ? (
+          <p className="subscribe-confirmed">You&rsquo;re in. Thanks for subscribing.</p>
+        ) : (
+          <form onSubmit={submitSubscribe}>
+            <label>
+              Name
+              <input
+                aria-label="Name"
+                value={subscribeForm.name}
+                onChange={(e) => setSubscribeForm({ ...subscribeForm, name: e.target.value })}
+              />
+            </label>
+            <label>
+              Email
+              <input
+                aria-label="Email"
+                type="email"
+                required
+                value={subscribeForm.email}
+                onChange={(e) => setSubscribeForm({ ...subscribeForm, email: e.target.value })}
+              />
+            </label>
+            <button type="submit" disabled={subscribeStatus === "busy"}>
+              {subscribeStatus === "busy" ? "Subscribing" : "Subscribe"}
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="footer-social">
