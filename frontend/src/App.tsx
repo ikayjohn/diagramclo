@@ -9,7 +9,7 @@ import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
 import logo from "./assets/logo-transparent.png";
 
-const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "");
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "/_/backend");
 
 type ProductImage = {
   id: string;
