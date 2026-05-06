@@ -3,6 +3,7 @@ import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -13,21 +14,15 @@ const uploadRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".
 fs.mkdirSync(uploadRoot, { recursive: true });
 
 const imageUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadRoot),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-    const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+    const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (!allowedMimeTypes.has(file.mimetype) || !allowedExtensions.has(ext)) {
-      cb(new Error("Only JPG, PNG, WebP, and GIF uploads are allowed."));
+      cb(new Error("Only JPG, PNG, and WebP uploads are allowed."));
       return;
     }
     cb(null, true);
@@ -356,10 +351,17 @@ productsRouter.post("/:productId/images/upload", requireAdmin, imageUpload.singl
       _max: { sortOrder: true },
     });
     const sortOrder = ((max._max?.sortOrder) ?? -1) + 1;
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+    await sharp(req.file.buffer)
+      .rotate()
+      .resize({ width: 1600, height: 2000, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82, effort: 5 })
+      .toFile(path.join(uploadRoot, filename));
+
     const image = await prisma.productImage.create({
       data: {
         productId,
-        url: `/uploads/products/${req.file.filename}`,
+        url: `/uploads/products/${filename}`,
         altText: typeof req.body.altText === "string" && req.body.altText ? req.body.altText : product.name,
         sortOrder,
       },

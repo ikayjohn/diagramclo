@@ -1175,6 +1175,41 @@ nav a,
   margin-top: clamp(28px, 5vw, 70px);
 }
 
+.admin-analytics {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  margin-top: clamp(28px, 5vw, 70px);
+}
+
+.admin-metric-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-metric-grid article {
+  border-top: 2px solid #050505;
+  display: grid;
+  gap: 10px;
+  min-height: 110px;
+  padding-top: 12px;
+}
+
+.admin-metric-grid span {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-metric-grid strong {
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  overflow-wrap: anywhere;
+}
+
 .admin-list {
   border-top: 2px solid #050505;
   display: grid;
@@ -1960,7 +1995,8 @@ form button {
   }
 
   .admin-filter-row,
-  .admin-tabs {
+  .admin-tabs,
+  .admin-metric-grid {
     grid-template-columns: 1fr;
   }
 

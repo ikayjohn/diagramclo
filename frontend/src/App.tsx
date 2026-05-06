@@ -137,6 +137,16 @@ type Subscriber = {
   createdAt: string;
 };
 
+type AdminAnalytics = {
+  totalRevenueCents: number;
+  pendingOrders: number;
+  paidOrders: number;
+  lowStockVariants: number;
+  subscriberCount: number;
+  activeProducts: number;
+  archivedProducts: number;
+};
+
 type AdminProductForm = {
   name: string;
   slug: string;
@@ -171,7 +181,7 @@ type AddressForm = CheckoutForm & {
 };
 
 type ShopSort = "featured" | "price-low" | "price-high" | "name";
-type AdminTab = "products" | "orders" | "categories" | "subscribers";
+type AdminTab = "analytics" | "products" | "orders" | "categories" | "subscribers";
 
 type Route =
   | "home"
@@ -382,8 +392,9 @@ function App() {
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
   const [adminSubscribers, setAdminSubscribers] = useState<Subscriber[]>([]);
+  const [adminAnalytics, setAdminAnalytics] = useState<AdminAnalytics | null>(null);
   const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
-  const [adminTab, setAdminTab] = useState<AdminTab>("products");
+  const [adminTab, setAdminTab] = useState<AdminTab>("analytics");
   const [adminProductSearch, setAdminProductSearch] = useState("");
   const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState("all");
   const [adminPaymentFilter, setAdminPaymentFilter] = useState("all");
@@ -577,6 +588,15 @@ function App() {
       .catch((error) => {
         console.error(error);
         setAdminSubscribers([]);
+      });
+
+    request<{ analytics: AdminAnalytics }>("/admin/analytics", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then(({ analytics }) => setAdminAnalytics(analytics))
+      .catch((error) => {
+        console.error(error);
+        setAdminAnalytics(null);
       });
 
     request<{ categories: AdminCategory[] }>("/categories")
@@ -1330,6 +1350,14 @@ function App() {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     setAdminSubscribers(subscribers);
+  };
+
+  const refreshAdminAnalytics = async () => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    const { analytics } = await request<{ analytics: AdminAnalytics }>("/admin/analytics", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    setAdminAnalytics(analytics);
   };
 
   const exportSubscribersCsv = () => {
@@ -2517,7 +2545,7 @@ function App() {
               <p>{adminOrders.length} recent orders.</p>
               <p>{adminSubscribers.length} newsletter subscribers.</p>
               <div className="admin-tabs" role="tablist" aria-label="Admin sections">
-                {(["products", "orders", "categories", "subscribers"] as const).map((tab) => (
+                {(["analytics", "products", "orders", "categories", "subscribers"] as const).map((tab) => (
                   <button
                     className={adminTab === tab ? "active" : ""}
                     type="button"
@@ -2532,6 +2560,47 @@ function App() {
             </aside>
             {authUser?.role === "ADMIN" && (
               <>
+                <section className={adminTab === "analytics" ? "admin-analytics" : "admin-analytics admin-section-hidden"}>
+                  <div className="shop-toolbar">
+                    <span>Dashboard analytics</span>
+                    <button type="button" onClick={refreshAdminAnalytics}>Refresh analytics</button>
+                  </div>
+                  {adminAnalytics ? (
+                    <div className="admin-metric-grid">
+                      <article>
+                        <span>Revenue</span>
+                        <strong>{formatPrice(adminAnalytics.totalRevenueCents)}</strong>
+                      </article>
+                      <article>
+                        <span>Pending orders</span>
+                        <strong>{adminAnalytics.pendingOrders}</strong>
+                      </article>
+                      <article>
+                        <span>Paid orders</span>
+                        <strong>{adminAnalytics.paidOrders}</strong>
+                      </article>
+                      <article>
+                        <span>Low stock</span>
+                        <strong>{adminAnalytics.lowStockVariants}</strong>
+                      </article>
+                      <article>
+                        <span>Subscribers</span>
+                        <strong>{adminAnalytics.subscriberCount}</strong>
+                      </article>
+                      <article>
+                        <span>Products</span>
+                        <strong>{adminAnalytics.activeProducts}</strong>
+                      </article>
+                      <article>
+                        <span>Archived</span>
+                        <strong>{adminAnalytics.archivedProducts}</strong>
+                      </article>
+                    </div>
+                  ) : (
+                    <p className="empty-bag">Analytics are not loaded yet.</p>
+                  )}
+                </section>
+
                 <section className={adminTab === "categories" ? "admin-categories" : "admin-categories admin-section-hidden"}>
                   <div className="shop-toolbar">
                     <span>Categories</span>

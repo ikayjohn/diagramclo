@@ -78,3 +78,27 @@ Manual database backup:
 ```bash
 docker compose exec -T postgres pg_dump -U diagramclo_user diagramclo > /opt/backups/diagramclo/backup.sql
 ```
+
+Automated database and upload backup:
+
+```bash
+cd /opt/diagramclo
+sh scripts/vps-backup.sh
+```
+
+Daily cron at 2:30 AM:
+
+```bash
+crontab -e
+```
+
+```cron
+30 2 * * * APP_DIR=/opt/diagramclo BACKUP_DIR=/opt/backups/diagramclo sh /opt/diagramclo/scripts/vps-backup.sh >> /var/log/diagramclo-backup.log 2>&1
+```
+
+Restore a database backup and optional uploads archive:
+
+```bash
+cd /opt/diagramclo
+sh scripts/vps-restore.sh /opt/backups/diagramclo/db-YYYYMMDD-HHMMSS.sql /opt/backups/diagramclo/uploads-YYYYMMDD-HHMMSS.tar.gz
+```

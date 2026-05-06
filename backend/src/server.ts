@@ -8,6 +8,7 @@ import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createRateLimiter } from "./middleware/rate-limit.js";
 import { authRouter } from "./routes/auth.js";
+import { adminRouter } from "./routes/admin.js";
 import { cartRouter } from "./routes/cart.js";
 import { healthRouter } from "./routes/health.js";
 import { ordersRouter } from "./routes/orders.js";
@@ -38,6 +39,7 @@ app.use(generalLimiter);
 app.use(["/auth", "/orders", "/newsletter"], sensitiveLimiter);
 
 app.use("/auth", authRouter);
+app.use("/admin", adminRouter);
 app.use("/cart", cartRouter);
 app.use("/health", healthRouter);
 app.use("/orders", ordersRouter);

@@ -107,3 +107,4 @@ docker compose up -d --build
 - `PATCH /products/:productId/archive` - archive a product and hide it from the storefront; requires an admin `Bearer` token.
 - `PATCH /products/:productId/restore` - restore an archived product; requires an admin `Bearer` token.
 - `DELETE /products/:productId?mode=delete` - permanently delete a product only when it has no order history; requires an admin `Bearer` token.
+- `GET /admin/analytics` - return revenue, order, stock, subscriber, and product counts; requires an admin `Bearer` token.
