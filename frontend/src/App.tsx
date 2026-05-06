@@ -2,6 +2,7 @@ import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from
 import homeHero from "./assets/home-hero.png";
 import logo from "./assets/logo-transparent.png";
 import { AdminAnalyticsPanel, type AdminAnalytics } from "./components/AdminAnalyticsPanel";
+import { CartDrawer } from "./components/CartDrawer";
 import { SiteFooter } from "./components/SiteFooter";
 
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "/_/backend");
@@ -2973,58 +2974,16 @@ function App() {
         </div>
       )}
 
-      <div className={cartOpen ? "drawer-backdrop open" : "drawer-backdrop"} onClick={() => setCartOpen(false)} />
-      <aside className={cartOpen ? "cart-drawer open" : "cart-drawer"} aria-label="Shopping bag">
-        <div className="drawer-head">
-          <h2>Bag</h2>
-          <button onClick={() => setCartOpen(false)}>Close</button>
-        </div>
-        {cart?.items.length ? (
-          <div className="bag-items">
-            {cart.items.map((item) => (
-              <article className="bag-item" key={item.id}>
-                <img
-                  src={`${item.variant.product.images[0]?.url}?auto=format&fit=crop&w=320&q=80`}
-                  alt={item.variant.product.images[0]?.altText ?? item.variant.product.name}
-                />
-                <div>
-                  <h3>{item.variant.product.name}</h3>
-                  <p>
-                    {item.variant.color} / {item.variant.size}
-                  </p>
-                  <div className="bag-item-controls">
-                    <div className="quantity">
-                      <button
-                        disabled={busy === item.id}
-                        onClick={() => updateItem(item.id, Math.max(0, item.quantity - 1))}
-                      >
-                        -
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        disabled={busy === item.id}
-                        onClick={() => updateItem(item.id, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <strong>{formatPrice(item.variant.priceCents * item.quantity)}</strong>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-bag">Your bag is empty.</p>
-        )}
-        <div className="drawer-total">
-          <span>Total</span>
-          <strong>{formatPrice(cartTotal)}</strong>
-        </div>
-        <a href="#checkout" onClick={() => setCartOpen(false)}>
-          Checkout
-        </a>
-      </aside>
+      <CartDrawer
+        cart={cart}
+        cartOpen={cartOpen}
+        cartTotal={cartTotal}
+        busy={busy}
+        formatPrice={formatPrice}
+        imageSrc={imageSrc}
+        onClose={() => setCartOpen(false)}
+        onUpdateItem={updateItem}
+      />
     </main>
   );
 }
