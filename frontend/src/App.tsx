@@ -1,14 +1,8 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from "react";
-import bankTransferIcon from "./assets/icons/bank-transfer-svgrepo-com.svg";
-import mastercardIcon from "./assets/icons/mastercard-svgrepo-com(2).svg";
-import paypalIcon from "./assets/icons/paypal-svgrepo-com.svg";
-import paystackIcon from "./assets/icons/paystack-2.svg";
-import stripeIcon from "./assets/icons/credit-card-stripe-svgrepo-com.svg";
-import verveIcon from "./assets/icons/verve-2-svgrepo-com.svg";
-import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
 import logo from "./assets/logo-transparent.png";
 import { AdminAnalyticsPanel, type AdminAnalytics } from "./components/AdminAnalyticsPanel";
+import { SiteFooter } from "./components/SiteFooter";
 
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "/_/backend");
 
@@ -207,16 +201,6 @@ const currencies = [
 const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
 const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
 const deliverySteps = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] as const;
-const paymentIcons: Array<{ label: string; src: string; className?: string }> = [
-  { label: "Visa", src: visaIcon },
-  { label: "Mastercard", src: mastercardIcon },
-  { label: "Verve", src: verveIcon },
-  { label: "Paystack", src: paystackIcon, className: "paystack-logo" },
-  { label: "Stripe", src: stripeIcon },
-  { label: "PayPal", src: paypalIcon },
-  { label: "Bank transfer", src: bankTransferIcon },
-] as const;
-
 type CurrencyCode = (typeof currencies)[number]["code"];
 
 const jsonHeaders = { "Content-Type": "application/json" };
@@ -1485,99 +1469,6 @@ function App() {
       setBusy(null);
     }
   };
-
-  const siteFooter = (
-    <footer className="home-footer" id="footer">
-      <div className="footer-column">
-        <h3>Customer Care</h3>
-        <a href="#contact">Contact</a>
-        <a href="#shipping-delivery">Shipping &amp; Delivery</a>
-        <a href="#privacy-policy">Privacy Policy</a>
-        <a href="#terms-of-service">Terms of Service</a>
-      </div>
-
-      <div className="footer-column">
-        <h3>Info</h3>
-        <a href="#care-guide">Care Guide</a>
-        <a href="#size-guide">Size Guide</a>
-        <a href="#order-tracking">Order Tracking</a>
-      </div>
-
-      <div className="footer-subscribe">
-        <h3>Subscribe</h3>
-        <p>Sign up to receive emails from us, so you never miss out on the good stuff.</p>
-        {subscribeStatus === "done" ? (
-          <p className="subscribe-confirmed">You&rsquo;re in. Thanks for subscribing.</p>
-        ) : (
-          <form onSubmit={submitSubscribe}>
-            <label>
-              Name
-              <input
-                aria-label="Name"
-                value={subscribeForm.name}
-                onChange={(e) => setSubscribeForm({ ...subscribeForm, name: e.target.value })}
-              />
-            </label>
-            <label>
-              Email
-              <input
-                aria-label="Email"
-                type="email"
-                required
-                value={subscribeForm.email}
-                onChange={(e) => setSubscribeForm({ ...subscribeForm, email: e.target.value })}
-              />
-            </label>
-            <button type="submit" disabled={subscribeStatus === "busy"}>
-              {subscribeStatus === "busy" ? "Subscribing" : "Subscribe"}
-            </button>
-          </form>
-        )}
-      </div>
-
-      <div className="footer-social">
-        <div className="footer-social-links">
-          <h3>Social</h3>
-          <a href="https://www.instagram.com/diagramonlinee/" target="_blank" rel="noreferrer">
-            Instagram @diagramonlinee
-          </a>
-          <a href="https://www.snapchat.com/@diagramclo" target="_blank" rel="noreferrer">
-            Snapchat @diagramclo
-          </a>
-        </div>
-        <div className="footer-commerce">
-          <label className="currency-selector">
-            <span>Currency</span>
-            <select
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-            >
-              {currencies.map((item) => (
-                <option value={item.code} key={item.code}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="payment-methods" aria-label="Accepted payment methods">
-            {paymentIcons.map((icon) => (
-              <img
-                className={icon.className ? `payment-logo ${icon.className}` : "payment-logo"}
-                src={icon.src}
-                alt={icon.label}
-                key={icon.label}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <p className="footer-copyright">© 2026 Diagramclo™</p>
-      <a className="footer-credit" href="mailto:southcastng@gmail.com">
-        Built &amp; managed by Southcast Company.
-      </a>
-    </footer>
-  );
 
   return (
     <main className={route === "home" ? "home-shell" : "shop-shell"}>
@@ -3027,7 +2918,15 @@ function App() {
         </section>
       )}
 
-      {siteFooter}
+      <SiteFooter
+        currencies={currencies}
+        currency={currency}
+        subscribeForm={subscribeForm}
+        subscribeStatus={subscribeStatus}
+        onCurrencyChange={(nextCurrency) => setCurrency(nextCurrency as CurrencyCode)}
+        onSubscribe={submitSubscribe}
+        onSubscribeFormChange={setSubscribeForm}
+      />
 
       {detailProduct && (
         <div className="detail-backdrop" onClick={() => setDetailProductId(null)}>

@@ -86,6 +86,13 @@ Run all services with Docker Compose:
 docker compose up -d --build
 ```
 
+Apply production migrations:
+
+```bash
+cd backend
+npm run prisma:migrate:deploy
+```
+
 ## API Surface
 
 - `POST /auth/register` - create a customer account and return a JWT.

@@ -54,6 +54,60 @@ The backend will be available privately on:
 
 Expose it publicly later through Caddy or Nginx, not by opening the backend port directly.
 
+## 4.1. Database Migrations
+
+New installs use Prisma migrations automatically:
+
+```bash
+docker compose run --rm backend npx prisma migrate deploy
+```
+
+If this VPS database was already created earlier with `prisma db push`, mark the baseline migration as already applied one time before switching to deploys:
+
+```bash
+docker compose run --rm backend npx prisma migrate resolve --applied 20260506000000_baseline
+docker compose run --rm backend npx prisma migrate deploy
+```
+
+After that, future deployments should only use:
+
+```bash
+docker compose run --rm backend npx prisma migrate deploy
+```
+
+## 4.2. Reverse Proxy
+
+The frontend production build calls the API through `/_/backend`, so the reverse proxy must strip that prefix before forwarding to the backend.
+
+Caddy template:
+
+```bash
+cp deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+DOMAIN=diagramclo.com ACME_EMAIL=admin@diagramclo.com caddy reload --config /etc/caddy/Caddyfile
+```
+
+Nginx template:
+
+```bash
+cp deploy/nginx/diagramclo.conf /etc/nginx/sites-available/diagramclo
+ln -s /etc/nginx/sites-available/diagramclo /etc/nginx/sites-enabled/diagramclo
+nginx -t
+systemctl reload nginx
+```
+
+Before using the Nginx template, replace `example.com` with the real domain and issue certificates with Certbot.
+
+## 4.3. One-Command Deploy
+
+After the repo is cloned and `.env` is configured:
+
+```bash
+cd /opt/diagramclo
+sh scripts/vps-deploy.sh
+```
+
+The deploy script runs `git pull --ff-only`, rebuilds containers, applies Prisma migrations, and restarts services.
+
 ## 5. Firewall
 
 ```bash
