@@ -1061,6 +1061,66 @@ nav a,
   text-transform: uppercase;
 }
 
+.admin-tabs {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-tabs button {
+  background: #ffffff;
+  border: 1px solid #050505;
+  color: #050505;
+  font-size: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.admin-tabs button.active {
+  background: #050505;
+  color: #ffffff;
+}
+
+.admin-section-hidden {
+  display: none !important;
+}
+
+.admin-filter-row {
+  align-items: end;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.18);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  padding-bottom: 12px;
+}
+
+.admin-filter-row label {
+  color: #050505;
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-filter-row input,
+.admin-filter-row select {
+  border: 1px solid #050505;
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.admin-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: end;
+}
+
 .address-section {
   display: grid;
   gap: clamp(28px, 5vw, 70px);
@@ -1263,6 +1323,51 @@ nav a,
   font-size: 12px;
   line-height: 1.3;
   margin: 0;
+}
+
+.tracking-timeline {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.tracking-step {
+  align-items: center;
+  color: #6b6b6b;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 14px minmax(0, 1fr);
+}
+
+.tracking-step span {
+  border: 1px solid #6b6b6b;
+  display: block;
+  height: 14px;
+  width: 14px;
+}
+
+.tracking-step.done {
+  color: #050505;
+}
+
+.tracking-step.done span {
+  background: #050505;
+  border-color: #050505;
+}
+
+.tracking-step strong,
+.tracking-detail strong,
+.tracking-detail p {
+  font-size: 12px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.tracking-detail {
+  border-top: 1px solid rgba(5, 5, 5, 0.18);
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
 }
 
 .admin-variants {
@@ -1852,6 +1957,11 @@ form button {
 
   .home-footer {
     gap: 28px;
+  }
+
+  .admin-filter-row,
+  .admin-tabs {
+    grid-template-columns: 1fr;
   }
 
   .payment-methods {

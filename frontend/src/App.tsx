@@ -171,6 +171,7 @@ type AddressForm = CheckoutForm & {
 };
 
 type ShopSort = "featured" | "price-low" | "price-high" | "name";
+type AdminTab = "products" | "orders" | "categories" | "subscribers";
 
 type Route =
   | "home"
@@ -204,6 +205,7 @@ const currencies = [
 
 const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
 const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
+const deliverySteps = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] as const;
 const paymentIcons: Array<{ label: string; src: string; className?: string }> = [
   { label: "Visa", src: visaIcon },
   { label: "Mastercard", src: mastercardIcon },
@@ -221,6 +223,11 @@ const jsonHeaders = { "Content-Type": "application/json" };
 const imageSrc = (url: string, transform = "") => {
   if (url.startsWith("/uploads")) return `${API_URL}${url}`;
   return transform ? `${url}${transform}` : url;
+};
+
+const orderProgress = (status: string) => {
+  if (status === "CANCELLED") return -1;
+  return deliverySteps.findIndex((step) => step === status);
 };
 
 const policyPages: Record<PolicyRoute, {
@@ -376,6 +383,10 @@ function App() {
   const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
   const [adminSubscribers, setAdminSubscribers] = useState<Subscriber[]>([]);
   const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
+  const [adminTab, setAdminTab] = useState<AdminTab>("products");
+  const [adminProductSearch, setAdminProductSearch] = useState("");
+  const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState("all");
+  const [adminPaymentFilter, setAdminPaymentFilter] = useState("all");
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [adminCategoryForm, setAdminCategoryForm] = useState({ name: "", slug: "", description: "" });
@@ -682,6 +693,34 @@ function App() {
       return searchable.includes(query);
     });
   }, [products, shopSearch]);
+
+  const filteredAdminProducts = useMemo(() => {
+    const query = adminProductSearch.trim().toLowerCase();
+    if (!query) return adminProducts;
+
+    return adminProducts.filter((product) => {
+      const searchable = [
+        product.name,
+        product.slug,
+        product.description ?? "",
+        product.category?.name ?? "",
+        product.archivedAt ? "archived" : product.isActive ? "active" : "inactive",
+        ...product.variants.flatMap((variant) => [variant.sku, variant.color, variant.size]),
+      ].join(" ").toLowerCase();
+
+      return searchable.includes(query);
+    });
+  }, [adminProductSearch, adminProducts]);
+
+  const filteredAdminOrders = useMemo(
+    () =>
+      adminOrders.filter((order) => {
+        if (adminOrderStatusFilter !== "all" && order.status !== adminOrderStatusFilter) return false;
+        if (adminPaymentFilter !== "all" && order.paymentStatus !== adminPaymentFilter) return false;
+        return true;
+      }),
+    [adminOrderStatusFilter, adminOrders, adminPaymentFilter],
+  );
 
   const shopTitle = route === "new" ? "New Arrivals" : route === "limited" ? "Limited" : "Shop All";
   const isShopRoute = route === "shop" || route === "new" || route === "limited";
@@ -1291,6 +1330,27 @@ function App() {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     setAdminSubscribers(subscribers);
+  };
+
+  const exportSubscribersCsv = () => {
+    const rows = [
+      ["email", "name", "createdAt"],
+      ...adminSubscribers.map((subscriber) => [
+        subscriber.email,
+        subscriber.name ?? "",
+        subscriber.createdAt,
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `diagramclo-subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const updateAdminOrder = async (
@@ -2056,6 +2116,28 @@ function App() {
                   <p>Payment: {trackedOrder.paymentStatus}</p>
                   <p>Total: {formatPrice(trackedOrder.totalCents)}</p>
                   <p>Email: {trackedOrder.customerEmail}</p>
+                  <div className="tracking-timeline">
+                    {(trackedOrder.status === "CANCELLED" ? ["PENDING", "CANCELLED"] : deliverySteps).map((step, index) => {
+                      const progress = orderProgress(trackedOrder.status);
+                      const isDone = trackedOrder.status === "CANCELLED" ? step === "PENDING" || step === "CANCELLED" : index <= progress;
+                      return (
+                        <div className={isDone ? "tracking-step done" : "tracking-step"} key={step}>
+                          <span />
+                          <strong>{step}</strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="tracking-detail">
+                    <strong>Delivery</strong>
+                    <p>Courier: {trackedOrder.courier ?? "Not assigned yet"}</p>
+                    <p>Tracking: {trackedOrder.trackingNumber ?? "Not available yet"}</p>
+                    {trackedOrder.shippingAddress && (
+                      <p>
+                        Ship to: {trackedOrder.shippingAddress.city}, {trackedOrder.shippingAddress.state}
+                      </p>
+                    )}
+                  </div>
                   <div className="summary-total">
                     <span>Items</span>
                     <strong>{trackedOrder.items.length}</strong>
@@ -2198,7 +2280,10 @@ function App() {
                   <div className="summary-line" key={order.id}>
                     <span>
                       {order.id}<br />
-                      {order.status} / {order.items.length} item{order.items.length === 1 ? "" : "s"}
+                      {order.status} / {order.items.length} item{order.items.length === 1 ? "" : "s"}<br />
+                      {order.courier || order.trackingNumber
+                        ? `${order.courier ?? "Courier"} / ${order.trackingNumber ?? "Tracking pending"}`
+                        : "Delivery details pending"}
                     </span>
                     <strong>{formatPrice(order.totalCents)}</strong>
                   </div>
@@ -2319,7 +2404,7 @@ function App() {
       ) : (
         <section className="account-page" id="admin">
           <div className="account-grid admin-grid">
-            <form className="account-form" onSubmit={submitAdminProduct}>
+            <form className={adminTab === "products" ? "account-form" : "account-form admin-section-hidden"} onSubmit={submitAdminProduct}>
               <p>Admin</p>
               <h1>Product Management</h1>
               <span>{authUser?.role === "ADMIN" ? notice : "Login with an admin account to create products."}</span>
@@ -2431,11 +2516,23 @@ function App() {
               <p>{adminProducts.length || products.length} products loaded.</p>
               <p>{adminOrders.length} recent orders.</p>
               <p>{adminSubscribers.length} newsletter subscribers.</p>
+              <div className="admin-tabs" role="tablist" aria-label="Admin sections">
+                {(["products", "orders", "categories", "subscribers"] as const).map((tab) => (
+                  <button
+                    className={adminTab === tab ? "active" : ""}
+                    type="button"
+                    key={tab}
+                    onClick={() => setAdminTab(tab)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
               {authUser?.role !== "ADMIN" && <a href="#login">Login as admin</a>}
             </aside>
             {authUser?.role === "ADMIN" && (
               <>
-                <section className="admin-categories">
+                <section className={adminTab === "categories" ? "admin-categories" : "admin-categories admin-section-hidden"}>
                   <div className="shop-toolbar">
                     <span>Categories</span>
                   </div>
@@ -2591,13 +2688,29 @@ function App() {
                   )}
                 </section>
 
-                <section className="admin-orders">
+                <section className={adminTab === "orders" ? "admin-orders" : "admin-orders admin-section-hidden"}>
                   <div className="shop-toolbar">
-                    <span>{adminOrders.length} recent orders</span>
+                    <span>{filteredAdminOrders.length} of {adminOrders.length} recent orders</span>
                     <button type="button" onClick={refreshAdminOrders}>Refresh orders</button>
                   </div>
-                  {adminOrders.length ? (
-                    adminOrders.map((order) => (
+                  <div className="admin-filter-row">
+                    <label>
+                      Status
+                      <select value={adminOrderStatusFilter} onChange={(event) => setAdminOrderStatusFilter(event.target.value)}>
+                        <option value="all">All statuses</option>
+                        {orderStatuses.map((status) => <option value={status} key={status}>{status}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      Payment
+                      <select value={adminPaymentFilter} onChange={(event) => setAdminPaymentFilter(event.target.value)}>
+                        <option value="all">All payments</option>
+                        {paymentStatuses.map((status) => <option value={status} key={status}>{status}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  {filteredAdminOrders.length ? (
+                    filteredAdminOrders.map((order) => (
                       <article className="admin-order-card" key={order.id}>
                         <div>
                           <h2>{order.id}</h2>
@@ -2712,10 +2825,13 @@ function App() {
                   )}
                 </section>
 
-                <section className="admin-subscribers">
+                <section className={adminTab === "subscribers" ? "admin-subscribers" : "admin-subscribers admin-section-hidden"}>
                   <div className="shop-toolbar">
                     <span>{adminSubscribers.length} newsletter subscribers</span>
-                    <button type="button" onClick={refreshAdminSubscribers}>Refresh subscribers</button>
+                    <div className="admin-toolbar-actions">
+                      <button type="button" onClick={refreshAdminSubscribers}>Refresh subscribers</button>
+                      <button type="button" disabled={!adminSubscribers.length} onClick={exportSubscribersCsv}>Export CSV</button>
+                    </div>
                   </div>
                   {adminSubscribers.length ? (
                     <div className="admin-list">
@@ -2734,12 +2850,23 @@ function App() {
                   )}
                 </section>
 
-                <section className="admin-catalog">
+                <section className={adminTab === "products" ? "admin-catalog" : "admin-catalog admin-section-hidden"}>
                   <div className="shop-toolbar">
-                    <span>{notice}</span>
+                    <span>{filteredAdminProducts.length} of {adminProducts.length} products / {notice}</span>
                     <button type="button" onClick={refreshAdminProducts}>Refresh catalog</button>
                   </div>
-                  {adminProducts.map((product) => (
+                  <div className="admin-filter-row">
+                    <label>
+                      Product search
+                      <input
+                        value={adminProductSearch}
+                        onChange={(event) => setAdminProductSearch(event.target.value)}
+                        placeholder="Name, SKU, color, category, archived"
+                        type="search"
+                      />
+                    </label>
+                  </div>
+                  {filteredAdminProducts.map((product) => (
                     <article className="admin-product-card" key={product.id}>
                       {editingProductId === product.id ? (
                         <div className="admin-category-edit">
