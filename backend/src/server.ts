@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
+import { createRateLimiter } from "./middleware/rate-limit.js";
 import { authRouter } from "./routes/auth.js";
 import { cartRouter } from "./routes/cart.js";
 import { healthRouter } from "./routes/health.js";
@@ -18,10 +19,23 @@ const app = express();
 const uploadsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
 
 app.use(helmet());
-app.use(cors());
+app.set("trust proxy", 1);
+app.use(cors({ origin: env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use("/uploads", express.static(uploadsRoot));
+
+const generalLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+});
+const sensitiveLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+});
+
+app.use(generalLimiter);
+app.use(["/auth", "/orders", "/newsletter"], sensitiveLimiter);
 
 app.use("/auth", authRouter);
 app.use("/cart", cartRouter);

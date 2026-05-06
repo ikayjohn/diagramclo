@@ -22,8 +22,12 @@ const imageUpload = multer({
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image uploads are allowed."));
+    const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+    const allowedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!allowedMimeTypes.has(file.mimetype) || !allowedExtensions.has(ext)) {
+      cb(new Error("Only JPG, PNG, WebP, and GIF uploads are allowed."));
       return;
     }
     cb(null, true);
@@ -100,7 +104,7 @@ productsRouter.get("/admin/all", requireAdmin, async (_req, res, next) => {
 productsRouter.get("/", async (_req, res, next) => {
   try {
     const products = await prisma.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, archivedAt: null },
       include: {
         category: true,
         images: { orderBy: { sortOrder: "asc" } },
@@ -126,7 +130,7 @@ productsRouter.get("/:slug", async (req, res, next) => {
       },
     });
 
-    if (!product || !product.isActive) {
+    if (!product || !product.isActive || product.archivedAt) {
       res.status(404).json({ error: "Product not found" });
       return;
     }
@@ -193,6 +197,63 @@ productsRouter.patch("/variants/:variantId", requireAdmin, async (req, res, next
     });
 
     res.json({ variant });
+  } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.patch("/:productId/archive", requireAdmin, async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    if (typeof productId !== "string") {
+      res.status(400).json({ error: "Invalid product ID" });
+      return;
+    }
+
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        isActive: false,
+        archivedAt: new Date(),
+        variants: {
+          updateMany: {
+            where: { productId },
+            data: { isActive: false },
+          },
+        },
+      },
+      include: {
+        category: true,
+        images: { orderBy: { sortOrder: "asc" } },
+        variants: { orderBy: [{ color: "asc" }, { size: "asc" }] },
+      },
+    });
+
+    res.json({ product });
+  } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.patch("/:productId/restore", requireAdmin, async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    if (typeof productId !== "string") {
+      res.status(400).json({ error: "Invalid product ID" });
+      return;
+    }
+
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: { archivedAt: null },
+      include: {
+        category: true,
+        images: { orderBy: { sortOrder: "asc" } },
+        variants: { orderBy: [{ color: "asc" }, { size: "asc" }] },
+      },
+    });
+
+    res.json({ product });
   } catch (error) {
     next(error);
   }
@@ -313,11 +374,77 @@ productsRouter.post("/:productId/images/upload", requireAdmin, imageUpload.singl
 productsRouter.delete("/images/:imageId", requireAdmin, async (req, res, next) => {
   try {
     const imageId = req.params.imageId as string;
-    await prisma.productImage.delete({ where: { id: imageId } });
+    const image = await prisma.productImage.delete({ where: { id: imageId } });
+    if (image.url.startsWith("/uploads/products/")) {
+      const filename = path.basename(image.url);
+      await fs.promises.unlink(path.join(uploadRoot, filename)).catch(() => undefined);
+    }
     res.json({ ok: true });
   } catch (error: any) {
     if (error?.code === "P2025") {
       res.status(404).json({ error: "Image not found." });
+      return;
+    }
+    next(error);
+  }
+});
+
+productsRouter.delete("/:productId", requireAdmin, async (req, res, next) => {
+  try {
+    const productId = req.params.productId as string;
+    const mode = req.query.mode === "delete" ? "delete" : "archive";
+
+    if (mode === "archive") {
+      const product = await prisma.product.update({
+        where: { id: productId },
+        data: {
+          isActive: false,
+          archivedAt: new Date(),
+          variants: {
+            updateMany: {
+              where: { productId },
+              data: { isActive: false },
+            },
+          },
+        },
+      });
+      res.json({ product, archived: true });
+      return;
+    }
+
+    const orderItemCount = await prisma.orderItem.count({
+      where: { variant: { productId } },
+    });
+
+    if (orderItemCount > 0) {
+      res.status(409).json({ error: "Product has order history. Archive it instead of deleting it." });
+      return;
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { images: true, variants: { select: { id: true } } },
+    });
+
+    if (!product) {
+      res.status(404).json({ error: "Product not found." });
+      return;
+    }
+
+    const variantIds = product.variants.map((variant) => variant.id);
+    await prisma.cartItem.deleteMany({ where: { variantId: { in: variantIds } } });
+    await prisma.product.delete({ where: { id: productId } });
+
+    await Promise.all(
+      product.images
+        .filter((image) => image.url.startsWith("/uploads/products/"))
+        .map((image) => fs.promises.unlink(path.join(uploadRoot, path.basename(image.url))).catch(() => undefined)),
+    );
+
+    res.json({ ok: true, deleted: true });
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      res.status(404).json({ error: "Product not found." });
       return;
     }
     next(error);

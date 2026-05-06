@@ -34,6 +34,7 @@ type Product = {
   slug: string;
   description: string | null;
   isActive: boolean;
+  archivedAt?: string | null;
   category: { name: string; slug: string } | null;
   images: ProductImage[];
   variants: ProductVariant[];
@@ -97,6 +98,9 @@ type TrackedOrder = {
   totalCents: number;
   customerEmail: string;
   customerPhone?: string | null;
+  courier?: string | null;
+  trackingNumber?: string | null;
+  internalNotes?: string | null;
   createdAt: string;
   items: Array<{
     id: string;
@@ -371,6 +375,7 @@ function App() {
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
   const [adminSubscribers, setAdminSubscribers] = useState<Subscriber[]>([]);
+  const [expandedAdminOrderId, setExpandedAdminOrderId] = useState<string | null>(null);
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [adminCategoryForm, setAdminCategoryForm] = useState({ name: "", slug: "", description: "" });
@@ -1226,6 +1231,11 @@ function App() {
     setAdminProducts(nextProducts);
   };
 
+  const refreshShopProducts = async () => {
+    const { products: nextProducts } = await request<{ products: Product[] }>("/products");
+    setProducts(nextProducts);
+  };
+
   const updateAdminProduct = async (productId: string, data: Partial<Pick<Product, "isActive" | "name" | "description">>) => {
     if (!authToken || authUser?.role !== "ADMIN") return;
 
@@ -1285,7 +1295,7 @@ function App() {
 
   const updateAdminOrder = async (
     orderId: string,
-    data: Partial<Pick<TrackedOrder, "status" | "paymentStatus">>,
+    data: Partial<Pick<TrackedOrder, "status" | "paymentStatus" | "courier" | "trackingNumber" | "internalNotes">>,
   ) => {
     if (!authToken || authUser?.role !== "ADMIN") return;
     setBusy(orderId);
@@ -1300,6 +1310,59 @@ function App() {
       setNotice("Order updated.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Could not update order.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const archiveProduct = async (productId: string) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    setBusy(productId);
+    try {
+      await request(`/products/${productId}/archive`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      await Promise.all([refreshAdminProducts(), refreshShopProducts()]);
+      setNotice("Product archived.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not archive product.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const restoreProduct = async (productId: string) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    setBusy(productId);
+    try {
+      await request(`/products/${productId}/restore`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      await Promise.all([refreshAdminProducts(), refreshShopProducts()]);
+      setNotice("Product restored.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not restore product.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    if (!window.confirm("Delete this product permanently? Products with order history must be archived instead.")) return;
+
+    setBusy(productId);
+    try {
+      await request(`/products/${productId}?mode=delete`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      await Promise.all([refreshAdminProducts(), refreshShopProducts()]);
+      setNotice("Product deleted.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not delete product.");
     } finally {
       setBusy(null);
     }
@@ -2544,6 +2607,9 @@ function App() {
                           </p>
                           <p>{new Date(order.createdAt).toLocaleString()}</p>
                           <p>{order.items.length} items / {formatPrice(order.totalCents)}</p>
+                          {(order.courier || order.trackingNumber) && (
+                            <p>{order.courier ?? "Courier"} / {order.trackingNumber ?? "No tracking number"}</p>
+                          )}
                         </div>
                         <div className="admin-order-controls">
                           <label>
@@ -2570,6 +2636,42 @@ function App() {
                               ))}
                             </select>
                           </label>
+                          <label>
+                            Courier
+                            <input
+                              defaultValue={order.courier ?? ""}
+                              disabled={busy === order.id}
+                              onBlur={(event) => updateAdminOrder(order.id, { courier: event.target.value || undefined })}
+                            />
+                          </label>
+                          <label>
+                            Tracking
+                            <input
+                              defaultValue={order.trackingNumber ?? ""}
+                              disabled={busy === order.id}
+                              onBlur={(event) => updateAdminOrder(order.id, { trackingNumber: event.target.value || undefined })}
+                            />
+                          </label>
+                        </div>
+                        <div className="admin-actions">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedAdminOrderId(expandedAdminOrderId === order.id ? null : order.id)}
+                          >
+                            {expandedAdminOrderId === order.id ? "Hide details" : "Details"}
+                          </button>
+                          {order.shippingAddress && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const address = `${order.shippingAddress?.fullName}, ${order.shippingAddress?.line1}${order.shippingAddress?.line2 ? `, ${order.shippingAddress.line2}` : ""}, ${order.shippingAddress?.city}, ${order.shippingAddress?.state}, ${order.shippingAddress?.country}`;
+                                void navigator.clipboard?.writeText(address);
+                                setNotice("Address copied.");
+                              }}
+                            >
+                              Copy address
+                            </button>
+                          )}
                         </div>
                         <div className="admin-order-items">
                           {order.items.map((item) => (
@@ -2583,6 +2685,25 @@ function App() {
                             {order.shippingAddress.fullName}, {order.shippingAddress.line1}
                             {order.shippingAddress.line2 ? `, ${order.shippingAddress.line2}` : ""}, {order.shippingAddress.city}, {order.shippingAddress.state}
                           </p>
+                        )}
+                        {expandedAdminOrderId === order.id && (
+                          <div className="admin-order-detail">
+                            <label>
+                              Internal notes
+                              <textarea
+                                defaultValue={order.internalNotes ?? ""}
+                                disabled={busy === order.id}
+                                onBlur={(event) => updateAdminOrder(order.id, { internalNotes: event.target.value || undefined })}
+                              />
+                            </label>
+                            <div>
+                              <strong>Fulfillment</strong>
+                              <p>Status: {order.status}</p>
+                              <p>Payment: {order.paymentStatus}</p>
+                              <p>Courier: {order.courier ?? "Not set"}</p>
+                              <p>Tracking: {order.trackingNumber ?? "Not set"}</p>
+                            </div>
+                          </div>
                         )}
                       </article>
                     ))
@@ -2642,16 +2763,24 @@ function App() {
                         <div>
                           <h2>{product.name}</h2>
                           <p>{product.category?.name ?? "—"} · {product.slug}</p>
+                          {product.archivedAt && <p>Archived {new Date(product.archivedAt).toLocaleString()}</p>}
                           <p>{product.description}</p>
                         </div>
                       )}
                       <div className="admin-actions">
-                        <button type="button" disabled={busy === product.id} onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}>
+                        <button type="button" disabled={busy === product.id || Boolean(product.archivedAt)} onClick={() => updateAdminProduct(product.id, { isActive: !product.isActive })}>
                           {product.isActive ? "Deactivate" : "Activate"}
                         </button>
                         {editingProductId !== product.id && (
                           <button type="button" onClick={() => { setEditingProductId(product.id); setEditProductForm({ name: product.name, description: product.description ?? "", categoryId: product.category?.slug ? (adminCategories.find((c) => c.slug === product.category?.slug)?.id ?? "") : "" }); }}>Edit</button>
                         )}
+                        {!product.archivedAt && (
+                          <button type="button" disabled={busy === product.id} onClick={() => archiveProduct(product.id)}>Archive</button>
+                        )}
+                        {product.archivedAt && (
+                          <button type="button" disabled={busy === product.id} onClick={() => restoreProduct(product.id)}>Restore</button>
+                        )}
+                        <button type="button" disabled={busy === product.id} onClick={() => deleteProduct(product.id)}>Delete</button>
                       </div>
 
                       <div className="admin-variants">

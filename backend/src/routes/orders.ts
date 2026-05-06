@@ -34,6 +34,9 @@ const orderLookupSchema = z.object({
 const adminOrderUpdateSchema = z.object({
   status: z.nativeEnum(OrderStatus).optional(),
   paymentStatus: z.nativeEnum(PaymentStatus).optional(),
+  courier: z.string().max(120).optional(),
+  trackingNumber: z.string().max(120).optional(),
+  internalNotes: z.string().max(2000).optional(),
 });
 
 const orderInclude = {
@@ -217,7 +220,7 @@ ordersRouter.patch("/admin/:orderId", requireAdmin, async (req, res, next) => {
       void sendEmailSafely({
         to: order.customerEmail,
         subject: `Diagramclo order update: ${order.id}`,
-        text: `Your order ${order.id} has been updated.\n\nOrder status: ${order.status}\nPayment status: ${order.paymentStatus}`,
+        text: `Your order ${order.id} has been updated.\n\nOrder status: ${order.status}\nPayment status: ${order.paymentStatus}${order.courier ? `\nCourier: ${order.courier}` : ""}${order.trackingNumber ? `\nTracking number: ${order.trackingNumber}` : ""}`,
       });
     }
 

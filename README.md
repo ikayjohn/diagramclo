@@ -104,3 +104,6 @@ docker compose up -d --build
 - `POST /newsletter/subscribe` - subscribe an email address to newsletter updates.
 - `GET /newsletter/subscribers` - list newsletter subscribers; requires an admin `Bearer` token.
 - `POST /products/:productId/images/upload` - upload a product image file; requires an admin `Bearer` token.
+- `PATCH /products/:productId/archive` - archive a product and hide it from the storefront; requires an admin `Bearer` token.
+- `PATCH /products/:productId/restore` - restore an archived product; requires an admin `Bearer` token.
+- `DELETE /products/:productId?mode=delete` - permanently delete a product only when it has no order history; requires an admin `Bearer` token.
