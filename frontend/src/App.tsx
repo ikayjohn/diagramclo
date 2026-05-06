@@ -126,6 +126,13 @@ type AdminCategory = {
   _count: { products: number };
 };
 
+type Subscriber = {
+  id: string;
+  name: string | null;
+  email: string;
+  createdAt: string;
+};
+
 type AdminProductForm = {
   name: string;
   slug: string;
@@ -168,6 +175,7 @@ type Route =
   | "collections"
   | "limited"
   | "custom"
+  | "search"
   | "checkout"
   | "shipping"
   | "contact"
@@ -205,6 +213,11 @@ const paymentIcons: Array<{ label: string; src: string; className?: string }> = 
 type CurrencyCode = (typeof currencies)[number]["code"];
 
 const jsonHeaders = { "Content-Type": "application/json" };
+
+const imageSrc = (url: string, transform = "") => {
+  if (url.startsWith("/uploads")) return `${API_URL}${url}`;
+  return transform ? `${url}${transform}` : url;
+};
 
 const policyPages: Record<PolicyRoute, {
   eyebrow: string;
@@ -304,6 +317,7 @@ const getRouteFromHash = (): Route => {
   if (window.location.hash === "#collections") return "collections";
   if (window.location.hash === "#limited") return "limited";
   if (window.location.hash === "#custom") return "custom";
+  if (window.location.hash === "#search") return "search";
   if (window.location.hash === "#checkout") return "checkout";
   if (window.location.hash === "#shipping-delivery") return "shipping";
   if (window.location.hash === "#contact") return "contact";
@@ -356,6 +370,7 @@ function App() {
   const [customerOrders, setCustomerOrders] = useState<TrackedOrder[]>([]);
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
   const [adminOrders, setAdminOrders] = useState<TrackedOrder[]>([]);
+  const [adminSubscribers, setAdminSubscribers] = useState<Subscriber[]>([]);
   const [adminCategories, setAdminCategories] = useState<AdminCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [adminCategoryForm, setAdminCategoryForm] = useState({ name: "", slug: "", description: "" });
@@ -391,6 +406,7 @@ function App() {
   });
   const [addVariantForms, setAddVariantForms] = useState<Record<string, NewVariantForm>>({});
   const [addImageForms, setAddImageForms] = useState<Record<string, NewImageForm>>({});
+  const [uploadAltText, setUploadAltText] = useState<Record<string, string>>({});
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editProductForm, setEditProductForm] = useState({ name: "", description: "", categoryId: "" });
   const [addressForm, setAddressForm] = useState<AddressForm>({
@@ -538,6 +554,15 @@ function App() {
         setAdminOrders([]);
       });
 
+    request<{ subscribers: Subscriber[] }>("/newsletter/subscribers", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+      .then(({ subscribers }) => setAdminSubscribers(subscribers))
+      .catch((error) => {
+        console.error(error);
+        setAdminSubscribers([]);
+      });
+
     request<{ categories: AdminCategory[] }>("/categories")
       .then(({ categories }) => {
         setAdminCategories(categories);
@@ -636,6 +661,22 @@ function App() {
       }),
     [categoryOptions, products],
   );
+
+  const searchResults = useMemo(() => {
+    const query = shopSearch.trim().toLowerCase();
+    if (!query) return [];
+
+    return products.filter((product) => {
+      const searchable = [
+        product.name,
+        product.description ?? "",
+        product.category?.name ?? "",
+        ...product.variants.flatMap((variant) => [variant.color, variant.size, variant.sku]),
+      ].join(" ").toLowerCase();
+
+      return searchable.includes(query);
+    });
+  }, [products, shopSearch]);
 
   const shopTitle = route === "new" ? "New Arrivals" : route === "limited" ? "Limited" : "Shop All";
   const isShopRoute = route === "shop" || route === "new" || route === "limited";
@@ -1118,6 +1159,31 @@ function App() {
     }
   };
 
+  const uploadProductImage = async (productId: string, file: File | null) => {
+    if (!authToken || !file) return;
+
+    const body = new FormData();
+    body.append("image", file);
+    const altText = uploadAltText[productId];
+    if (altText) body.append("altText", altText);
+
+    setBusy(`upload-image-${productId}`);
+    try {
+      await request(`/products/${productId}/images/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}` },
+        body,
+      });
+      await refreshAdminProducts();
+      setUploadAltText((current) => ({ ...current, [productId]: "" }));
+      setNotice("Image uploaded.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not upload image.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const deleteProductImage = async (imageId: string, productId: string) => {
     if (!authToken) return;
     setBusy(imageId);
@@ -1207,6 +1273,14 @@ function App() {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     setAdminOrders(orders);
+  };
+
+  const refreshAdminSubscribers = async () => {
+    if (!authToken || authUser?.role !== "ADMIN") return;
+    const { subscribers } = await request<{ subscribers: Subscriber[] }>("/newsletter/subscribers", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    setAdminSubscribers(subscribers);
   };
 
   const updateAdminOrder = async (
@@ -1377,7 +1451,7 @@ function App() {
           <a href="#custom">Custom</a>
         </nav>
         <nav className="utility-nav" aria-label="Account">
-          <a href="#shop">Search</a>
+          <a href="#search">Search</a>
           <a href={authUser ? (authUser.role === "ADMIN" ? "#admin" : "#account") : "#login"}>
             {authUser ? "Account" : "Login"}
           </a>
@@ -1396,6 +1470,68 @@ function App() {
           <h1>DIAGRAMCLO™</h1>
           <a className="hero-shop" href="#shop">Shop</a>
           <a className="signup-tab" href="#signup">Sign up</a>
+        </section>
+      ) : route === "search" ? (
+        <section className="shop shop-page" id="search">
+          <div className="shop-page-heading">
+            <p>Search Diagramclo™</p>
+            <h1>Search</h1>
+          </div>
+          <div className="search-panel">
+            <label>
+              <span>Search products</span>
+              <input
+                autoFocus
+                value={shopSearch}
+                onChange={(event) => setShopSearch(event.target.value)}
+                placeholder="Product, category, color, size, SKU"
+                type="search"
+              />
+            </label>
+          </div>
+          <div className="shop-toolbar">
+            <span>{shopSearch.trim() ? `${searchResults.length} results` : "Enter a search term"}</span>
+            <a href="#shop">Open filtered shop</a>
+          </div>
+          <div className="shop-grid">
+            {shopSearch.trim() && searchResults.length ? (
+              searchResults.map((product) => (
+                <article className="shop-card" key={product.id}>
+                  <div className="shop-image">
+                    {product.images[0] ? (
+                      <button
+                        className="shop-image-button"
+                        type="button"
+                        onClick={() => {
+                          setSelectedProductId(product.id);
+                          setDetailProductId(product.id);
+                        }}
+                      >
+                        <img
+                          src={imageSrc(product.images[0].url, "?auto=format&fit=crop&w=700&q=88")}
+                          alt={product.images[0].altText ?? product.name}
+                        />
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="shop-card-meta">
+                    <div>
+                      <h2>{product.name}</h2>
+                      <p>{product.category?.name ?? "Product"}</p>
+                    </div>
+                    <div>
+                      <strong>{product.variants[0] ? formatPrice(product.variants[0].priceCents) : "—"}</strong>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="shop-empty">
+                <h2>{shopSearch.trim() ? "No results." : "Search the catalog."}</h2>
+                <p>{shopSearch.trim() ? "Try another product name, category, color, size, or SKU." : "Start typing to find products."}</p>
+              </div>
+            )}
+          </div>
         </section>
       ) : isShopRoute ? (
         <section className="shop shop-page" id="shop">
@@ -1500,7 +1636,7 @@ function App() {
                         }}
                       >
                         <img
-                          src={`${product.images[0].url}?auto=format&fit=crop&w=700&q=88`}
+                          src={imageSrc(product.images[0].url, "?auto=format&fit=crop&w=700&q=88")}
                           alt={product.images[0].altText ?? product.name}
                         />
                       </button>
@@ -1561,7 +1697,7 @@ function App() {
                 >
                   <div>
                     {collection.image ? (
-                      <img src={`${collection.image.url}?auto=format&fit=crop&w=800&q=88`} alt={collection.image.altText ?? collection.name} />
+                      <img src={imageSrc(collection.image.url, "?auto=format&fit=crop&w=800&q=88")} alt={collection.image.altText ?? collection.name} />
                     ) : null}
                   </div>
                   <span>{collection.count} items</span>
@@ -2231,6 +2367,7 @@ function App() {
               <h2>Catalog</h2>
               <p>{adminProducts.length || products.length} products loaded.</p>
               <p>{adminOrders.length} recent orders.</p>
+              <p>{adminSubscribers.length} newsletter subscribers.</p>
               {authUser?.role !== "ADMIN" && <a href="#login">Login as admin</a>}
             </aside>
             {authUser?.role === "ADMIN" && (
@@ -2454,6 +2591,28 @@ function App() {
                   )}
                 </section>
 
+                <section className="admin-subscribers">
+                  <div className="shop-toolbar">
+                    <span>{adminSubscribers.length} newsletter subscribers</span>
+                    <button type="button" onClick={refreshAdminSubscribers}>Refresh subscribers</button>
+                  </div>
+                  {adminSubscribers.length ? (
+                    <div className="admin-list">
+                      {adminSubscribers.map((subscriber) => (
+                        <article className="admin-list-row" key={subscriber.id}>
+                          <div>
+                            <strong>{subscriber.email}</strong>
+                            <span>{subscriber.name ?? "No name"}</span>
+                          </div>
+                          <span>{new Date(subscriber.createdAt).toLocaleString()}</span>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="empty-bag">No subscribers yet.</p>
+                  )}
+                </section>
+
                 <section className="admin-catalog">
                   <div className="shop-toolbar">
                     <span>{notice}</span>
@@ -2513,6 +2672,24 @@ function App() {
                           <button type="button" disabled={busy === `add-image-${product.id}` || !addImageForms[product.id]?.url} onClick={() => submitAddImage(product.id)}>
                             {busy === `add-image-${product.id}` ? "Adding" : "+ Image"}
                           </button>
+                        </div>
+                        <div className="admin-variant-row">
+                          <input
+                            placeholder="Upload alt text"
+                            value={uploadAltText[product.id] ?? ""}
+                            onChange={(e) => setUploadAltText((cur) => ({ ...cur, [product.id]: e.target.value }))}
+                          />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={busy === `upload-image-${product.id}`}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0] ?? null;
+                              void uploadProductImage(product.id, file);
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                          <span>{busy === `upload-image-${product.id}` ? "Uploading image" : "Upload image file"}</span>
                         </div>
                       </div>
 
@@ -2578,7 +2755,7 @@ function App() {
             <div className="detail-image">
               {detailProduct.images[0] && (
                 <img
-                  src={`${detailProduct.images[0].url}?auto=format&fit=crop&w=1000&q=90`}
+                  src={imageSrc(detailProduct.images[0].url, "?auto=format&fit=crop&w=1000&q=90")}
                   alt={detailProduct.images[0].altText ?? detailProduct.name}
                 />
               )}

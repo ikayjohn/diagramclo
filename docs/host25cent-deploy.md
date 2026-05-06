@@ -30,6 +30,12 @@ POSTGRES_PASSWORD=replace_with_a_strong_password
 DATABASE_URL=postgresql://diagramclo_user:replace_with_a_strong_password@postgres:5432/diagramclo
 BACKEND_PORT=4000
 JWT_SECRET=replace_with_a_long_random_secret_32_chars_minimum
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=
+ADMIN_EMAIL=
 ```
 
 ## 4. Start Services
@@ -71,4 +77,3 @@ Manual database backup:
 ```bash
 docker compose exec -T postgres pg_dump -U diagramclo_user diagramclo > /opt/backups/diagramclo/backup.sql
 ```
-

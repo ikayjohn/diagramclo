@@ -2,6 +2,8 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { authRouter } from "./routes/auth.js";
@@ -13,11 +15,13 @@ import { newsletterRouter } from "./routes/newsletter.js";
 import { productsRouter } from "./routes/products.js";
 
 const app = express();
+const uploadsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
 
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use("/uploads", express.static(uploadsRoot));
 
 app.use("/auth", authRouter);
 app.use("/cart", cartRouter);

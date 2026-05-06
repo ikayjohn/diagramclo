@@ -101,3 +101,6 @@ docker compose up -d --build
 - `DELETE /cart/:cartId/items/:itemId` - remove an item.
 - `POST /orders` - checkout a cart, create an order, and decrement stock.
 - `GET /orders/:orderId?email=customer@example.com` - fetch an order.
+- `POST /newsletter/subscribe` - subscribe an email address to newsletter updates.
+- `GET /newsletter/subscribers` - list newsletter subscribers; requires an admin `Bearer` token.
+- `POST /products/:productId/images/upload` - upload a product image file; requires an admin `Bearer` token.

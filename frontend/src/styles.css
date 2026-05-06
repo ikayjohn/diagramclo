@@ -604,6 +604,32 @@ nav a,
   padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
+.search-panel {
+  border-bottom: 1px solid #050505;
+  display: grid;
+  margin-bottom: 8px;
+  padding: 8px 0 16px;
+}
+
+.search-panel label {
+  color: #050505;
+  display: grid;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.search-panel input {
+  border: 2px solid #050505;
+  font-size: clamp(22px, 4vw, 54px);
+  font-weight: 900;
+  min-height: 76px;
+  padding: 0 14px;
+  text-transform: uppercase;
+  width: 100%;
+}
+
 .collection-grid {
   display: grid;
   gap: 8px;
@@ -1080,6 +1106,40 @@ nav a,
   gap: 16px;
   grid-column: 1 / -1;
   margin-top: clamp(28px, 5vw, 70px);
+}
+
+.admin-subscribers {
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  margin-top: clamp(28px, 5vw, 70px);
+}
+
+.admin-list {
+  border-top: 2px solid #050505;
+  display: grid;
+}
+
+.admin-list-row {
+  align-items: center;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.18);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px 0;
+}
+
+.admin-list-row div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-list-row strong,
+.admin-list-row span {
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .admin-product-card {

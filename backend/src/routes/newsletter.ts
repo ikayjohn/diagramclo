@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { notifyAdminSafely, sendEmailSafely } from "../lib/email.js";
 import { prisma } from "../lib/prisma.js";
 import { requireAdmin } from "../middleware/auth.js";
 
@@ -19,6 +20,16 @@ newsletterRouter.post("/subscribe", async (req, res, next) => {
       update: { name: input.name || undefined },
       create: { email: input.email, name: input.name || undefined },
     });
+
+    void sendEmailSafely({
+      to: input.email,
+      subject: "You're subscribed to Diagramclo",
+      text: `Thanks for subscribing${input.name ? `, ${input.name}` : ""}. We'll send Diagramclo updates and drops to this email.`,
+    });
+    void notifyAdminSafely(
+      "New Diagramclo newsletter subscriber",
+      `${input.email}${input.name ? ` (${input.name})` : ""} subscribed to the newsletter.`,
+    );
 
     res.json({ ok: true });
   } catch (error) {

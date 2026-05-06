@@ -7,4 +7,4 @@ dist/
 coverage/
 .next/
 postgres_data/
-
+backend/uploads/

@@ -1,6 +1,7 @@
 import { InventoryReason, OrderStatus, PaymentStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
+import { notifyAdminSafely, sendEmailSafely } from "../lib/email.js";
 import { httpError } from "../lib/http-error.js";
 import { prisma } from "../lib/prisma.js";
 import { type AuthenticatedRequest, requireAdmin, requireAuth } from "../middleware/auth.js";
@@ -149,6 +150,20 @@ ordersRouter.post("/", async (req, res, next) => {
       return createdOrder;
     });
 
+    const orderSummary = order.items
+      .map((item) => `- ${item.productName} / ${item.color} / ${item.size} x ${item.quantity}`)
+      .join("\n");
+
+    void sendEmailSafely({
+      to: order.customerEmail,
+      subject: `Diagramclo order received: ${order.id}`,
+      text: `We received your order ${order.id}.\n\n${orderSummary}\n\nTotal: NGN ${(order.totalCents / 100).toLocaleString("en-NG")}\nStatus: ${order.status}`,
+    });
+    void notifyAdminSafely(
+      `New Diagramclo order: ${order.id}`,
+      `${order.customerEmail} placed order ${order.id}.\n\n${orderSummary}\n\nTotal: NGN ${(order.totalCents / 100).toLocaleString("en-NG")}`,
+    );
+
     res.status(201).json({ order });
   } catch (error) {
     next(error);
@@ -197,6 +212,14 @@ ordersRouter.patch("/admin/:orderId", requireAdmin, async (req, res, next) => {
       data: input,
       include: orderInclude,
     });
+
+    if (input.status || input.paymentStatus) {
+      void sendEmailSafely({
+        to: order.customerEmail,
+        subject: `Diagramclo order update: ${order.id}`,
+        text: `Your order ${order.id} has been updated.\n\nOrder status: ${order.status}\nPayment status: ${order.paymentStatus}`,
+      });
+    }
 
     res.json({ order });
   } catch (error) {

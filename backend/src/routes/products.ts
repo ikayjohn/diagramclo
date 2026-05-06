@@ -1,9 +1,34 @@
 import { Router } from "express";
+import multer from "multer";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAdmin } from "../middleware/auth.js";
 
 export const productsRouter = Router();
+
+const uploadRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../uploads/products");
+fs.mkdirSync(uploadRoot, { recursive: true });
+
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadRoot),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new Error("Only image uploads are allowed."));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 const createProductSchema = z.object({
   name: z.string().min(2),
@@ -243,6 +268,40 @@ productsRouter.post("/:productId/images", requireAdmin, async (req, res, next) =
 
     const image = await prisma.productImage.create({
       data: { productId, url: input.url, altText: input.altText, sortOrder },
+    });
+
+    res.status(201).json({ image });
+  } catch (error) {
+    next(error);
+  }
+});
+
+productsRouter.post("/:productId/images/upload", requireAdmin, imageUpload.single("image"), async (req, res, next) => {
+  try {
+    const productId = req.params.productId as string;
+    if (!req.file) {
+      res.status(400).json({ error: "Image file is required." });
+      return;
+    }
+
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) {
+      res.status(404).json({ error: "Product not found." });
+      return;
+    }
+
+    const max = await prisma.productImage.aggregate({
+      where: { productId },
+      _max: { sortOrder: true },
+    });
+    const sortOrder = ((max._max?.sortOrder) ?? -1) + 1;
+    const image = await prisma.productImage.create({
+      data: {
+        productId,
+        url: `/uploads/products/${req.file.filename}`,
+        altText: typeof req.body.altText === "string" && req.body.altText ? req.body.altText : product.name,
+        sortOrder,
+      },
     });
 
     res.status(201).json({ image });
