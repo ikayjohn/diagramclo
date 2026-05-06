@@ -8,6 +8,7 @@ import verveIcon from "./assets/icons/verve-2-svgrepo-com.svg";
 import visaIcon from "./assets/icons/visa-svgrepo-com.svg";
 import homeHero from "./assets/home-hero.png";
 import logo from "./assets/logo-transparent.png";
+import { AdminAnalyticsPanel, type AdminAnalytics } from "./components/AdminAnalyticsPanel";
 
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:4000" : "/_/backend");
 
@@ -135,16 +136,6 @@ type Subscriber = {
   name: string | null;
   email: string;
   createdAt: string;
-};
-
-type AdminAnalytics = {
-  totalRevenueCents: number;
-  pendingOrders: number;
-  paidOrders: number;
-  lowStockVariants: number;
-  subscriberCount: number;
-  activeProducts: number;
-  archivedProducts: number;
 };
 
 type AdminProductForm = {
@@ -2560,46 +2551,13 @@ function App() {
             </aside>
             {authUser?.role === "ADMIN" && (
               <>
-                <section className={adminTab === "analytics" ? "admin-analytics" : "admin-analytics admin-section-hidden"}>
-                  <div className="shop-toolbar">
-                    <span>Dashboard analytics</span>
-                    <button type="button" onClick={refreshAdminAnalytics}>Refresh analytics</button>
-                  </div>
-                  {adminAnalytics ? (
-                    <div className="admin-metric-grid">
-                      <article>
-                        <span>Revenue</span>
-                        <strong>{formatPrice(adminAnalytics.totalRevenueCents)}</strong>
-                      </article>
-                      <article>
-                        <span>Pending orders</span>
-                        <strong>{adminAnalytics.pendingOrders}</strong>
-                      </article>
-                      <article>
-                        <span>Paid orders</span>
-                        <strong>{adminAnalytics.paidOrders}</strong>
-                      </article>
-                      <article>
-                        <span>Low stock</span>
-                        <strong>{adminAnalytics.lowStockVariants}</strong>
-                      </article>
-                      <article>
-                        <span>Subscribers</span>
-                        <strong>{adminAnalytics.subscriberCount}</strong>
-                      </article>
-                      <article>
-                        <span>Products</span>
-                        <strong>{adminAnalytics.activeProducts}</strong>
-                      </article>
-                      <article>
-                        <span>Archived</span>
-                        <strong>{adminAnalytics.archivedProducts}</strong>
-                      </article>
-                    </div>
-                  ) : (
-                    <p className="empty-bag">Analytics are not loaded yet.</p>
-                  )}
-                </section>
+                <div className={adminTab === "analytics" ? "" : "admin-section-hidden"}>
+                  <AdminAnalyticsPanel
+                    analytics={adminAnalytics}
+                    formatPrice={formatPrice}
+                    onRefresh={refreshAdminAnalytics}
+                  />
+                </div>
 
                 <section className={adminTab === "categories" ? "admin-categories" : "admin-categories admin-section-hidden"}>
                   <div className="shop-toolbar">

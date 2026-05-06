@@ -1,7 +1,7 @@
 import { InventoryReason, OrderStatus, PaymentStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
-import { notifyAdminSafely, sendEmailSafely } from "../lib/email.js";
+import { notifyAdminSafely, renderEmailTemplate, sendEmailSafely } from "../lib/email.js";
 import { httpError } from "../lib/http-error.js";
 import { prisma } from "../lib/prisma.js";
 import { type AuthenticatedRequest, requireAdmin, requireAuth } from "../middleware/auth.js";
@@ -161,6 +161,18 @@ ordersRouter.post("/", async (req, res, next) => {
       to: order.customerEmail,
       subject: `Diagramclo order received: ${order.id}`,
       text: `We received your order ${order.id}.\n\n${orderSummary}\n\nTotal: NGN ${(order.totalCents / 100).toLocaleString("en-NG")}\nStatus: ${order.status}`,
+      html: renderEmailTemplate({
+        title: "Order received",
+        intro: `We received your order ${order.id}.`,
+        rows: [
+          ["Order ID", order.id],
+          ["Status", order.status],
+          ["Payment", order.paymentStatus],
+          ["Items", `${order.items.length}`],
+          ["Total", `NGN ${(order.totalCents / 100).toLocaleString("en-NG")}`],
+        ],
+        footer: "Diagramclo order confirmation",
+      }),
     });
     void notifyAdminSafely(
       `New Diagramclo order: ${order.id}`,
@@ -221,6 +233,18 @@ ordersRouter.patch("/admin/:orderId", requireAdmin, async (req, res, next) => {
         to: order.customerEmail,
         subject: `Diagramclo order update: ${order.id}`,
         text: `Your order ${order.id} has been updated.\n\nOrder status: ${order.status}\nPayment status: ${order.paymentStatus}${order.courier ? `\nCourier: ${order.courier}` : ""}${order.trackingNumber ? `\nTracking number: ${order.trackingNumber}` : ""}`,
+        html: renderEmailTemplate({
+          title: "Order update",
+          intro: `Your order ${order.id} has been updated.`,
+          rows: [
+            ["Order ID", order.id],
+            ["Order status", order.status],
+            ["Payment status", order.paymentStatus],
+            ["Courier", order.courier ?? "Not assigned yet"],
+            ["Tracking", order.trackingNumber ?? "Not available yet"],
+          ],
+          footer: "Diagramclo order tracking",
+        }),
       });
     }
 

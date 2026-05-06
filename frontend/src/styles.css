@@ -1182,6 +1182,12 @@ nav a,
   margin-top: clamp(28px, 5vw, 70px);
 }
 
+.admin-low-stock {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
 .admin-metric-grid {
   display: grid;
   gap: 10px;
