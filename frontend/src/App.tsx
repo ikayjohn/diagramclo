@@ -2331,6 +2331,18 @@ function App() {
               )}
             </nav>
           </header>
+          <nav className="admin-tabs" role="tablist" aria-label="Admin sections">
+            {(["analytics", "products", "orders", "categories", "subscribers"] as const).map((tab) => (
+              <button
+                className={adminTab === tab ? "active" : ""}
+                type="button"
+                key={tab}
+                onClick={() => setAdminTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
           <div className="account-grid admin-grid">
             <form className={adminTab === "products" ? "account-form" : "account-form admin-section-hidden"} onSubmit={submitAdminProduct}>
               <p>Admin</p>
@@ -2444,18 +2456,6 @@ function App() {
               <p>{adminProducts.length || products.length} products loaded.</p>
               <p>{adminOrders.length} recent orders.</p>
               <p>{adminSubscribers.length} newsletter subscribers.</p>
-              <div className="admin-tabs" role="tablist" aria-label="Admin sections">
-                {(["analytics", "products", "orders", "categories", "subscribers"] as const).map((tab) => (
-                  <button
-                    className={adminTab === tab ? "active" : ""}
-                    type="button"
-                    key={tab}
-                    onClick={() => setAdminTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
               {authUser?.role === "ADMIN" ? (
                 <button type="button" onClick={logout}>Sign out</button>
               ) : (
