@@ -1,4 +1,3 @@
-import { PaymentStatus } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { requireAdmin } from "../middleware/auth.js";
@@ -18,11 +17,11 @@ adminRouter.get("/analytics", requireAdmin, async (_req, res, next) => {
       archivedProducts,
     ] = await Promise.all([
       prisma.order.aggregate({
-        where: { paymentStatus: PaymentStatus.PAID },
+        where: { paymentStatus: "PAID" },
         _sum: { totalCents: true },
       }),
       prisma.order.count({ where: { status: { in: ["PENDING", "CONFIRMED", "PROCESSING"] } } }),
-      prisma.order.count({ where: { paymentStatus: PaymentStatus.PAID } }),
+      prisma.order.count({ where: { paymentStatus: "PAID" } }),
       prisma.productVariant.count({
         where: {
           isActive: true,

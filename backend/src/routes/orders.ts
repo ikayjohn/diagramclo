@@ -1,4 +1,3 @@
-import { InventoryReason, OrderStatus, PaymentStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { notifyAdminSafely, renderEmailTemplate, sendEmailSafely } from "../lib/email.js";
@@ -31,9 +30,12 @@ const orderLookupSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
 });
 
+const orderStatuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
+const paymentStatuses = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
+
 const adminOrderUpdateSchema = z.object({
-  status: z.nativeEnum(OrderStatus).optional(),
-  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
+  status: z.enum(orderStatuses).optional(),
+  paymentStatus: z.enum(paymentStatuses).optional(),
   courier: z.string().max(120).optional(),
   trackingNumber: z.string().max(120).optional(),
   internalNotes: z.string().max(2000).optional(),
@@ -142,7 +144,7 @@ ordersRouter.post("/", async (req, res, next) => {
           data: {
             variantId: item.variantId,
             quantity: -item.quantity,
-            reason: InventoryReason.ORDER_PLACED,
+            reason: "ORDER_PLACED",
             note: `Order ${createdOrder.id}`,
           },
         });
