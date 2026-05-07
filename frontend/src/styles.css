@@ -977,6 +977,64 @@ nav a,
   padding: 36px clamp(16px, 5vw, 72px) 72px;
 }
 
+.admin-shell {
+  background: #f4f4f4;
+  color: #050505;
+  min-height: 100svh;
+}
+
+.admin-page {
+  min-height: 100svh;
+  padding: 0 clamp(16px, 4vw, 56px) 64px;
+}
+
+.admin-topbar {
+  align-items: center;
+  background: #050505;
+  color: #ffffff;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin: 0 calc(clamp(16px, 4vw, 56px) * -1) clamp(28px, 5vw, 56px);
+  min-height: 68px;
+  padding: 0 clamp(16px, 4vw, 56px);
+}
+
+.admin-topbar div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-topbar strong,
+.admin-topbar span,
+.admin-topbar a,
+.admin-topbar button {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.admin-topbar span {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 600;
+  text-transform: none;
+}
+
+.admin-topbar nav {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-topbar button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .account-grid {
   align-items: start;
   display: grid;
@@ -985,7 +1043,10 @@ nav a,
 }
 
 .admin-grid {
+  background: #ffffff;
+  border: 1px solid rgba(5, 5, 5, 0.14);
   grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.45fr);
+  padding: clamp(18px, 3vw, 34px);
 }
 
 .account-form {

@@ -720,6 +720,7 @@ function App() {
 
   const shopTitle = route === "new" ? "New Arrivals" : route === "limited" ? "Limited" : "Shop All";
   const isShopRoute = route === "shop" || route === "new" || route === "limited";
+  const isAdminRoute = route === "admin";
 
   const cartTotal = useMemo(
     () =>
@@ -1472,28 +1473,30 @@ function App() {
   };
 
   return (
-    <main className={route === "home" ? "home-shell" : "shop-shell"}>
-      <header className="topbar">
-        <button className="brand" onClick={goHome}>
-          <img src={logo} alt="Diagramclo™" />
-        </button>
-        <nav aria-label="Primary">
-          <a href="#new">New</a>
-          <a href="#collections">Collections</a>
-          <a href="#shop">Shop All</a>
-          <a href="#limited">Limited</a>
-          <a href="#custom">Custom</a>
-        </nav>
-        <nav className="utility-nav" aria-label="Account">
-          <a href="#search">Search</a>
-          <a href={authUser ? (authUser.role === "ADMIN" ? "#admin" : "#account") : "#login"}>
-            {authUser ? "Account" : "Login"}
-          </a>
-        </nav>
-        <button className="bag-button" onClick={() => setCartOpen(true)}>
-          Cart<sup>{cartCount}</sup>
-        </button>
-      </header>
+    <main className={isAdminRoute ? "admin-shell" : route === "home" ? "home-shell" : "shop-shell"}>
+      {!isAdminRoute && (
+        <header className="topbar">
+          <button className="brand" onClick={goHome}>
+            <img src={logo} alt="Diagramclo™" />
+          </button>
+          <nav aria-label="Primary">
+            <a href="#new">New</a>
+            <a href="#collections">Collections</a>
+            <a href="#shop">Shop All</a>
+            <a href="#limited">Limited</a>
+            <a href="#custom">Custom</a>
+          </nav>
+          <nav className="utility-nav" aria-label="Account">
+            <a href="#search">Search</a>
+            <a href={authUser ? (authUser.role === "ADMIN" ? "#admin" : "#account") : "#login"}>
+              {authUser ? "Account" : "Login"}
+            </a>
+          </nav>
+          <button className="bag-button" onClick={() => setCartOpen(true)}>
+            Cart<sup>{cartCount}</sup>
+          </button>
+        </header>
+      )}
 
       {route === "home" ? (
         <section
@@ -2313,7 +2316,21 @@ function App() {
           </div>
         </section>
       ) : (
-        <section className="account-page" id="admin">
+        <section className="admin-page" id="admin">
+          <header className="admin-topbar">
+            <div>
+              <strong>Diagramclo Admin</strong>
+              <span>{authUser?.role === "ADMIN" ? authUser.email : "Admin access required"}</span>
+            </div>
+            <nav aria-label="Admin utility">
+              <a href="#shop">View store</a>
+              {authUser ? (
+                <button type="button" onClick={logout}>Sign out</button>
+              ) : (
+                <a href="#login">Login</a>
+              )}
+            </nav>
+          </header>
           <div className="account-grid admin-grid">
             <form className={adminTab === "products" ? "account-form" : "account-form admin-section-hidden"} onSubmit={submitAdminProduct}>
               <p>Admin</p>
@@ -2439,7 +2456,11 @@ function App() {
                   </button>
                 ))}
               </div>
-              {authUser?.role !== "ADMIN" && <a href="#login">Login as admin</a>}
+              {authUser?.role === "ADMIN" ? (
+                <button type="button" onClick={logout}>Sign out</button>
+              ) : (
+                <a href="#login">Login as admin</a>
+              )}
             </aside>
             {authUser?.role === "ADMIN" && (
               <>
@@ -2919,15 +2940,17 @@ function App() {
         </section>
       )}
 
-      <SiteFooter
-        currencies={currencies}
-        currency={currency}
-        subscribeForm={subscribeForm}
-        subscribeStatus={subscribeStatus}
-        onCurrencyChange={(nextCurrency) => setCurrency(nextCurrency as CurrencyCode)}
-        onSubscribe={submitSubscribe}
-        onSubscribeFormChange={setSubscribeForm}
-      />
+      {!isAdminRoute && (
+        <SiteFooter
+          currencies={currencies}
+          currency={currency}
+          subscribeForm={subscribeForm}
+          subscribeStatus={subscribeStatus}
+          onCurrencyChange={(nextCurrency) => setCurrency(nextCurrency as CurrencyCode)}
+          onSubscribe={submitSubscribe}
+          onSubscribeFormChange={setSubscribeForm}
+        />
+      )}
 
       {detailProduct && (
         <div className="detail-backdrop" onClick={() => setDetailProductId(null)}>
@@ -2974,16 +2997,18 @@ function App() {
         </div>
       )}
 
-      <CartDrawer
-        cart={cart}
-        cartOpen={cartOpen}
-        cartTotal={cartTotal}
-        busy={busy}
-        formatPrice={formatPrice}
-        imageSrc={imageSrc}
-        onClose={() => setCartOpen(false)}
-        onUpdateItem={updateItem}
-      />
+      {!isAdminRoute && (
+        <CartDrawer
+          cart={cart}
+          cartOpen={cartOpen}
+          cartTotal={cartTotal}
+          busy={busy}
+          formatPrice={formatPrice}
+          imageSrc={imageSrc}
+          onClose={() => setCartOpen(false)}
+          onUpdateItem={updateItem}
+        />
+      )}
     </main>
   );
 }
